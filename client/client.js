@@ -8,6 +8,8 @@
 // 那个被遗忘的会话。
 (function () {
   var CSS_TEXT = `
+.saw-ic-gold{color:#f5c542}
+.saw-ic-dim{opacity:.55}
 #sa-widget{flex:none;margin:0 0 8px;padding:8px 2px 8px;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);font-size:12px;color:inherit;min-width:0;cursor:pointer}
 #sa-widget .saw-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;font-weight:600;gap:6px}
 #sa-widget .saw-list{display:flex;flex-wrap:wrap;gap:4px}
@@ -242,14 +244,28 @@
 
   // ---------------- widget ----------------
 
+  // 游戏任务标记:金色 ! = 有烂尾要接,亮 ! = 在推进,✓ = 天下太平
+  function iconState(c) {
+    if ((c.half || 0) > 0) return "gold";
+    if ((c.recent || 0) > 0 || (c.unanswered || 0) > 0) return "plain";
+    return "ok";
+  }
+
+  function iconSvg(state, size) {
+    var cls = state === "gold" ? "saw-ic-gold" : state === "ok" ? "saw-ic-dim" : "";
+    var open = '<svg class="' + cls + '" width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" aria-hidden="true">';
+    if (state === "ok") {
+      return open + '<path d="M2.8 8.4 L6.4 12 L13.2 4.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    return open + '<path d="M8 2.8 V9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="8" cy="12.4" r="1.15" fill="currentColor"/></svg>';
+  }
+
   function widgetHtml() {
-    return '<div class="saw-head"><span>What\'s up · 在忙啥</span></div>' +
+    return '<div class="saw-head"><span id="saw-ic"></span><span>What\'s up · 在忙啥</span></div>' +
       '<div class="saw-list" id="saw-row"><span class="saw-chip dim">加载中…</span></div>' +
       '<div class="saw-railbtn" id="saw-railbtn" aria-label="What\'s up">' +
-      '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-      '<path d="M8 1.5a6.5 6.5 0 1 0 0 13A.75.75 0 0 0 8 13a5 5 0 1 1 0-10 .75.75 0 0 0 0-1.5Z"/>' +
-      '<path d="M8 4.5a3.5 3.5 0 1 0 3.44 4.13.75.75 0 1 0-1.48-.24A2 2 0 1 1 8 6a.75.75 0 0 0 .53-.22l1.5-1.5a.75.75 0 0 0-.53-1.28.75.75 0 0 0-.53.22L8 5.19V4.5Z"/>' +
-      '</svg><span class="saw-railbadge" id="saw-railbadge" hidden></span></div>';
+      '<span id="saw-railic"></span>' +
+      '<span class="saw-railbadge" id="saw-railbadge" hidden></span></div>';
   }
 
   function renderWidget() {
@@ -257,6 +273,10 @@
     var badge = document.getElementById("saw-railbadge");
     if (!row || !data) return;
     var c = data.counts || {};
+    var head = document.getElementById("saw-ic");
+    var rail = document.getElementById("saw-railic");
+    if (head) head.innerHTML = iconSvg(iconState(c), 16);
+    if (rail) rail.innerHTML = iconSvg(iconState(c), 18);
     var html = "";
     if (c.recent) html += '<span class="saw-chip" data-tab="recent" title="打开:在做">📌 在做 <b>' + c.recent + "</b></span>";
     if (c.half) html += '<span class="saw-chip half" data-tab="half" title="打开:别忘了">🔴 别忘了 <b>' + c.half + "</b></span>";
@@ -480,7 +500,7 @@
     }
     ov.innerHTML =
       '<div class="sao-head">' +
-      '<span class="sao-title">👀 What\'s up</span>' +
+      '<span class="sao-title">' + iconSvg(iconState(c), 15) + " What's up</span>" +
       '<span class="sao-sub">共 ' + (data.total || 0) + " 个 · 在做 " + (c.recent || 0) + " · 别忘了 " + (c.half || 0) + " · 没回 " + (c.unanswered || 0) +
       " · 自动 " + (c.board || 0) + " · 完成 " + (c.done || 0) + " · 生成于 " + timeAgo(data.generatedAt) + "</span>" +
       '<span class="sao-spacer"></span>' +

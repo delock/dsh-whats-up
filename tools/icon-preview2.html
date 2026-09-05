@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>What's up · 任务标记图标预览</title>
+<style>
+  body{margin:0;padding:24px;font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+  h2{font-size:14px;margin:28px 0 10px;color:#444}
+  h2:first-child{margin-top:0}
+  .row{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .cell span{font-size:11px;color:#888}
+  .light{background:#f7f8fa;padding:20px;border-radius:10px}
+  .dark{background:#1c2129;padding:20px;border-radius:10px}
+  .dark .cell span{color:#9aa4b2}
+  .ic{color:#4b5563}
+  .ic.gold{color:#e8b339}
+  .dark .ic{color:#d7dde5}
+  .dark .ic.gold{color:#f5c542}
+  .side{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:inherit}
+  .chips{display:flex;gap:5px;margin-left:auto}
+  .chip{font-size:10.5px;padding:1px 7px;border-radius:8px;background:rgba(128,138,150,.15);white-space:nowrap}
+  .chip.half b{color:#f87171}
+  .railbtn{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative}
+  .railbtn:hover{background:rgba(128,138,150,.18)}
+  .badge{position:absolute;top:0;right:0;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;line-height:15px;text-align:center}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0">
+  <defs>
+    <!-- A: 纯感叹号(游戏 NPC 头顶款,粗壮圆头) -->
+    <g id="bang">
+      <path d="M8 2.8 V9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>
+      <circle cx="8" cy="12.4" r="1.15" fill="currentColor"/>
+    </g>
+    <!-- B: 气泡感叹号(任务对话) -->
+    <g id="bubble">
+      <path d="M4 2.5 h8 a2 2 0 0 1 2 2 v4.5 a2 2 0 0 1 -2 2 h-5.2 l-2.3 2.4 v-2.4 h-0.5 a2 2 0 0 1 -2 -2 v-4.5 a2 2 0 0 1 2 -2 Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" fill="none"/>
+      <path d="M8 5 v3.2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+      <circle cx="8" cy="10.4" r="0.85" fill="currentColor"/>
+    </g>
+    <!-- C: 菱形感叹号(罗盘任务标记) -->
+    <g id="diamond">
+      <path d="M8 1.6 L14.4 8 L8 14.4 L1.6 8 Z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round" fill="none"/>
+      <path d="M8 5.2 V8.8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>
+      <circle cx="8" cy="11" r="0.85" fill="currentColor"/>
+    </g>
+    <!-- 原生风格参照:闹钟 -->
+    <g id="clock">
+      <circle cx="8" cy="8.5" r="5.5" stroke="currentColor" stroke-width="1.25" fill="none"/>
+      <path d="M8 6v2.7l1.8 1.1" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" fill="none"/>
+      <path d="M5.2 1.6 3.4 3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" fill="none"/>
+      <path d="M10.8 1.6 12.6 3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" fill="none"/>
+    </g>
+  </defs>
+</svg>
+
+<h2>A · 纯感叹号「!」— NPC 头顶款(最简洁,小尺寸最清晰)</h2>
+<div class="dark"><div class="row">
+  <div class="cell"><svg class="ic" width="16" height="16" viewBox="0 0 16 16"><use href="#bang"/></svg><span>16</span></div>
+  <div class="cell"><svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#bang"/></svg><span>20</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#bang"/></svg><span>28</span></div>
+  <div class="cell"><svg class="ic gold" width="28" height="28" viewBox="0 0 16 16"><use href="#bang"/></svg><span>28 金色(游戏原味)</span></div>
+  <div class="cell" style="margin-left:24px"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#clock"/></svg><span>原生闹钟(对照)</span></div>
+</div></div>
+
+<h2>B · 气泡感叹号「💬!」— 任务对话款</h2>
+<div class="dark"><div class="row">
+  <div class="cell"><svg class="ic" width="16" height="16" viewBox="0 0 16 16"><use href="#bubble"/></svg><span>16</span></div>
+  <div class="cell"><svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#bubble"/></svg><span>20</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#bubble"/></svg><span>28</span></div>
+</div></div>
+
+<h2>C · 菱形感叹号「◈!」— 罗盘任务标记款</h2>
+<div class="dark"><div class="row">
+  <div class="cell"><svg class="ic" width="16" height="16" viewBox="0 0 16 16"><use href="#diamond"/></svg><span>16</span></div>
+  <div class="cell"><svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#diamond"/></svg><span>20</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#diamond"/></svg><span>28</span></div>
+  <div class="cell"><svg class="ic gold" width="28" height="28" viewBox="0 0 16 16"><use href="#diamond"/></svg><span>28 金色</span></div>
+</div></div>
+
+<h2>侧栏效果模拟(以 A 为例,深色 + 金色两版)</h2>
+<div class="dark" style="max-width:340px">
+  <div class="side" style="color:#d7dde5">
+    <svg class="ic" width="16" height="16" viewBox="0 0 16 16"><use href="#bang"/></svg>
+    <span>What's up · 在忙啥</span>
+    <div class="chips"><span class="chip">📌 在做 <b>18</b></span><span class="chip half">🔴 别忘了 <b>3</b></span></div>
+  </div>
+</div>
+<div style="height:10px"></div>
+<div class="dark" style="max-width:340px">
+  <div class="side" style="color:#d7dde5">
+    <svg class="ic gold" width="16" height="16" viewBox="0 0 16 16"><use href="#bang"/></svg>
+    <span>What's up · 在忙啥</span>
+    <div class="chips"><span class="chip">📌 在做 <b>18</b></span><span class="chip half">🔴 别忘了 <b>3</b></span></div>
+  </div>
+</div>
+
+<h2>折叠图标栏(带角标):A / B / C 三版对比</h2>
+<div class="dark" style="display:inline-flex;gap:16px;padding:12px">
+  <div class="railbtn" style="color:#d7dde5"><svg width="18" height="18" viewBox="0 0 16 16"><use href="#bang"/></svg><span class="badge">3</span></div>
+  <div class="railbtn" style="color:#d7dde5"><svg width="18" height="18" viewBox="0 0 16 16"><use href="#bubble"/></svg><span class="badge">3</span></div>
+  <div class="railbtn" style="color:#d7dde5"><svg width="18" height="18" viewBox="0 0 16 16"><use href="#diamond"/></svg><span class="badge">3</span></div>
+</div>
+
+</body>
+</html>
