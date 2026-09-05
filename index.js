@@ -15,8 +15,8 @@
 // Client 半:client/client.js — 侧栏小组件 + 全屏面板 + 点卡片跳回会话。
 
 import { readdir, stat, readFile } from "node:fs/promises";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { readFileSync, existsSync, readdirSync, realpathSync } from "node:fs";
+import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { zstdDecompressSync } from "node:zlib";
 
@@ -46,9 +46,7 @@ const STATUS_ORDER = { active: 0, half: 1, unanswered: 2, board: 3, done: 4, bla
 // (zai-coding-cn / glm)。摘要按文件指纹缓存到 ~/.dsh,重启不重算;LLM
 // 不可用时优雅降级为规则拼出的兜底文案。DSH_SA_NO_LLM=1 可完全关闭。
 
-const SUMMARY_MODEL = process.env.DSH_SA_MODEL || "glm-5.3";
 const LLM_DISABLED = process.env.DSH_SA_NO_LLM === "1";
-const LLM_BASE = "https://open.bigmodel.cn/api/coding/paas/v4";
 const SUMMARY_TARGETS = new Set(["half", "unanswered", "active"]);
 const SUMMARY_HARD_CAP = 40; // 单轮最多摘要的会话数(最新优先)
 const LLM_CONCURRENCY = 2;
@@ -120,55 +118,24 @@ function getApiKey() {
 }
 
 async function llmComplete(userText, maxTokens) {
-  const key = getApiKey();
-  if (!key) throw new Error("ZAI_CODING_CN_API_KEY not found in env or ~/.dsh/.credentials.yaml");
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 45000);
-  try {
-    const r = await fetch(LLM_BASE + "/chat/completions", {
-      method: "POST",
-      signal: ctrl.signal,
-      headers: { "content-type": "application/json", authorization: "Bearer " + key },
-      body: JSON.stringify({
-        model: SUMMARY_MODEL,
-        messages: [
-          {
-            role: "system",
-            content:
-              "你是会话清点助手。根据一个 DSH 会话的结构化信息提取两个字段:\n" +
-              "- goal: 用户在这件事上想达到的目标,祈使句式待办,不超过 25 字,像看板卡片标题" +
-              "(例:\"给 X 模型各版本做架构差异调研并验证\" 或 \"审完目标 PR 并给出结论\")\n" +
-              "- status: 当前大致状态,一句话不超过 50 字,点出关键进展/下一步/阻塞" +
-              "(例:\"代码全部完成,仅剩 GPU 实测,实例已关机\")\n" +
-              "- achieved: 该目标当前是否已达成(boolean)。只有确已完成才算 true;" +
-              "仍有剩余工作、被阻塞、在等待外部资源时为 false;信息不足可省略该字段\n" +
-              '只输出 JSON:{"goal":"...","status":"...","achieved":false},不要其他内容。',
-          },
-          { role: "user", content: userText },
-        ],
-        max_tokens: maxTokens || 400,
-        temperature: 0.3,
-        // glm-5.3 默认思考:答案先进 reasoning_content,max_tokens 小时 content
-        // 恒为空(实测 200 tokens 全烧在思考上)。摘要任务不需要思考,显式关掉:
-        // 响应时间 14s → 1.1s,内容直接落在 content。
-        thinking: { type: "disabled" },
-      }),
-    });
-    if (!r.ok) throw new Error("llm http " + r.status);
-    const data = await r.json();
-    let text = "";
-    const choice = data.choices && data.choices[0];
-    if (choice && choice.message && typeof choice.message.content === "string") text = choice.message.content;
-    // 兜底:某些形态把答案放 delta/content 数组
-    if (!text && choice && choice.message && Array.isArray(choice.message.content)) {
-      text = choice.message.content.map((c) => (c && c.text) || "").join("");
-    }
-    text = String(text).replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-    if (!text) throw new Error("empty llm response");
-    return text.slice(0, 400);
-  } finally {
-    clearTimeout(timer);
-  }
+  return (await llmChat(
+    [
+      {
+        role: "system",
+        content:
+          "你是会话清点助手。根据一个 DSH 会话的结构化信息提取两个字段:\n" +
+          "- goal: 用户在这件事上想达到的目标,祈使句式待办,不超过 25 字,像看板卡片标题" +
+          "(例:\"给 X 模型各版本做架构差异调研并验证\" 或 \"审完目标 PR 并给出结论\")\n" +
+          "- status: 当前大致状态,一句话不超过 50 字,点出关键进展/下一步/阻塞" +
+          "(例:\"代码全部完成,仅剩 GPU 实测,实例已关机\")\n" +
+          "- achieved: 该目标当前是否已达成(boolean)。只有确已完成才算 true;" +
+          "仍有剩余工作、被阻塞、在等待外部资源时为 false;信息不足可省略该字段\n" +
+          '只输出 JSON:{"goal":"...","status":"...","achieved":false},不要其他内容。',
+      },
+      { role: "user", content: userText },
+    ],
+    maxTokens
+  )).slice(0, 400);
 }
 
 // 解析 {"goal":"...","status":"..."};解析失败返回 null(由调用方降级)
@@ -309,37 +276,13 @@ async function runSummaries(sidFp) {
 }
 
 async function llmDigest(userText) {
-  const key = getApiKey();
-  if (!key) throw new Error("no key");
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 45000);
-  try {
-    const r = await fetch(LLM_BASE + "/chat/completions", {
-      method: "POST",
-      signal: ctrl.signal,
-      headers: { "content-type": "application/json", authorization: "Bearer " + key },
-      body: JSON.stringify({
-        model: SUMMARY_MODEL,
-        messages: [
-          { role: "system", content: "你是工作简报助手,输出精炼的中文总述,不列清单、不加前缀。" },
-          { role: "user", content: userText },
-        ],
-        max_tokens: 400,
-        temperature: 0.3,
-        thinking: { type: "disabled" },
-      }),
-    });
-    if (!r.ok) throw new Error("llm http " + r.status);
-    const data = await r.json();
-    const choice = data.choices && data.choices[0];
-    let text = (choice && choice.message && choice.message.content) || "";
-    if (Array.isArray(text)) text = text.map((c) => (c && c.text) || "").join("");
-    text = String(text).replace(/<think>[\s\S]*?<\/think>/g, "").trim();
-    if (!text) throw new Error("empty");
-    return text.slice(0, 160);
-  } finally {
-    clearTimeout(timer);
-  }
+  return (await llmChat(
+    [
+      { role: "system", content: "你是工作简报助手,输出精炼的中文总述,不列清单、不加前缀。" },
+      { role: "user", content: userText },
+    ],
+    400
+  )).slice(0, 160);
 }
 
 const digestCache = new Map();

@@ -24,10 +24,13 @@ DSH What's up · 会话动态面板:host 端扫描 `~/.dsh/sessions` 的会话�
   - **status**(状态行):当前大致状态一句话,含关键进展/下一步/阻塞(≤50 字)
 - 原 LLM 会话标题降级为卡片上的小字注释(`💬 原题`),跳转搜索兜底仍用它
 - 每个 tab(近期/半途/没回/进行中)生成 1–2 句总述
-- 凭据解析链:env `ZAI_CODING_CN_API_KEY` → `~/.dsh/.credentials.yaml`;
-  模型默认 `glm-5.3` 且 `thinking: disabled`(思考模式会把 max_tokens 烧在
-  reasoning_content 里,正文恒空;实测 14s→1.1s);`DSH_SA_MODEL` 可换模型,
-  `DSH_SA_NO_LLM=1` 完全关闭
+- **模型选择机制(多 provider)**:候选链 = `DSH_SA_MODEL`(支持
+  `provider/model` 或裸模型名)→ settings.yaml 的 `agent-default-model`
+  (GUI 默认模型)→ settings 里其他凭据可解析的 provider(按声明顺序)。
+  endpoint 从 dsh 安装内的 pi-ai provider 注册表运行时解析(46 家,GUI
+  同源不硬编码);凭据解析 env(`apiKeyEnv`/注册表 env 名)→
+  `~/.dsh/.credentials.yaml`。运行时探活:401/403/网络错误 → 当前候选
+  阵亡 30 分钟自动切换;glm 系模型自动附 `thinking: disabled`
 - 摘要按文件指纹缓存到 `~/.dsh/whats-up.summaries.json`(v2 格式),会话没变不重算
 - LLM 不可用时降级为规则拼出的兜底文案(todo/最后一条消息),面板照常可用
 
