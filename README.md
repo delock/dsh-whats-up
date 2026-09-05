@@ -28,7 +28,7 @@ DSH What's up · 会话动态面板:host 端扫描 `~/.dsh/sessions` 的会话�
   模型默认 `glm-5.3` 且 `thinking: disabled`(思考模式会把 max_tokens 烧在
   reasoning_content 里,正文恒空;实测 14s→1.1s);`DSH_SA_MODEL` 可换模型,
   `DSH_SA_NO_LLM=1` 完全关闭
-- 摘要按文件指纹缓存到 `~/.dsh/session-audit.summaries.json`(v2 格式),会话没变不重算
+- 摘要按文件指纹缓存到 `~/.dsh/whats-up.summaries.json`(v2 格式),会话没变不重算
 - LLM 不可用时降级为规则拼出的兜底文案(todo/最后一条消息),面板照常可用
 
 ## 更新策略
@@ -59,7 +59,7 @@ pnpm install
 - 侧栏"会话清点"小组件:🔴 半途 N / 🟡 没回 M,点击开面板
 - 面板内点任意卡片 → 直接跳回该会话(`ctx.sessions.open`)
 - `Alt+J` 开关面板,`Esc` 关闭
-- host 端数据接口:`GET /api/session-audit/data`(`?fresh=1` 强制全量重扫)
+- host 端数据接口:`GET /api/whats-up/data`(`?fresh=1` 强制全量重扫)
 
 ## 开发
 
