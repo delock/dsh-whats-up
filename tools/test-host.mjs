@@ -9,7 +9,7 @@ const ctx = {
   },
   webServer: {
     register(r) {
-      route = r;
+      if (r.path === "/api/whats-up/data") route = r; // 插件注册多条路由,只取 data
       return () => {};
     },
   },

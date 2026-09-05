@@ -210,7 +210,7 @@ function stripInternal(s) {
 
 function currentTargets() {
   return [...enrichedBySid.values()]
-    .filter((s) => !s.markedDone && (SUMMARY_TARGETS.has(s.status) || s.recent))
+    .filter((s) => !s.markedDone && !s.archived && (SUMMARY_TARGETS.has(s.status) || s.recent))
     .sort((a, b) => b.lastTime - a.lastTime)
     .slice(0, SUMMARY_HARD_CAP);
 }
@@ -278,7 +278,7 @@ async function runSummaries(sidFp) {
   // ---------------- tab 总述 ----------------
   const all = [...enrichedBySid.values()];
   for (const tab of DIGEST_TABS) {
-    const members = (tab === "recent" ? all.filter((s) => s.recent) : all.filter((s) => s.status === tab && s.status !== "board")).filter((s) => !s.markedDone);
+    const members = (tab === "recent" ? all.filter((s) => s.recent) : all.filter((s) => s.status === tab && s.status !== "board")).filter((s) => !s.markedDone && !s.archived);
     if (!members.length) {
       tabDigests[tab] = "";
       continue;
@@ -600,6 +600,7 @@ async function discover() {
 async function scan(force) {
   const now = Date.now();
   await loadDoneOnce();
+  const archivedSet = await loadArchivedSet();
   const found = await discover();
 
   // 指纹检查:只对 新出现的 / mtime或size变了的 / 缓存缺失的 文件重新分析。
@@ -633,15 +634,20 @@ async function scan(force) {
   for (const v of cache.values()) sidFp.set(v.summary.id, v.mtimeMs + ":" + v.size);
 
   const sessions = [...cache.values()].map((v) => v.summary);
-  const counts = { active: 0, half: 0, unanswered: 0, board: 0, done: 0, blank: 0, recent: 0 };
+  const counts = { active: 0, half: 0, unanswered: 0, board: 0, done: 0, blank: 0, recent: 0, archived: 0 };
   // enriched 对象跨请求持久(挂在 enrichedBySid 上):摘要状态(summary/summaryState)
   // 是异步补上的,如果每次请求都重建对象,正在生成的摘要会挂到已被丢弃的旧对象
   // 上,响应里永远看不到。只有指纹变了的会话才重建条目。
   const seenSids = new Set();
   for (const s of sessions) {
     const { status, recent, flags } = classify(s, now);
-    counts[status]++;
-    if (recent) counts.recent++;
+    const archived = archivedSet.has(s.id);
+    if (archived) {
+      counts.archived++; // 归档:不计入任何业务分类
+    } else {
+      counts[status]++;
+      if (recent) counts.recent++;
+    }
     seenSids.add(s.id);
     const prev = enrichedBySid.get(s.id);
     const fp = sidFp.get(s.id) || "";
@@ -664,8 +670,9 @@ async function scan(force) {
       prev.recent = recent;
       prev.flags = flags;
       prev.markedDone = markedDone;
+      prev.archived = archived;
     } else {
-      enrichedBySid.set(s.id, { ...s, status, recent, flags, markedDone, __fp: fp });
+      enrichedBySid.set(s.id, { ...s, status, recent, flags, markedDone, archived, __fp: fp });
     }
   }
   for (const sid of [...enrichedBySid.keys()]) if (!seenSids.has(sid)) enrichedBySid.delete(sid);
@@ -702,6 +709,21 @@ function ensureScanned(force) {
     });
   }
   return scanning;
+}
+
+// ---------------------------------------------------------------- 归档会话排除
+// 归档是 workspace registry 的标记(会话文件不挪窝):~/.dsh/storages/
+// workspace.json 的 global.archivedSessionIds。归档 = 用户主动收起,不进
+// 任何计数、不摘要,单独收进"已归档" tab。
+
+async function loadArchivedSet() {
+  try {
+    const raw = JSON.parse(await readFile(join(dshHome(), "storages", "workspace.json"), "utf8"));
+    const ids = raw && raw.global && raw.global.archivedSessionIds;
+    return new Set(Array.isArray(ids) ? ids.map(String) : []);
+  } catch (e) {
+    return new Set();
+  }
 }
 
 // ---------------------------------------------------------------- 手动标记完成
