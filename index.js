@@ -98,23 +98,216 @@ function trimSummaryCache() {
   for (const k of keys.slice(0, summaryCache.size - 800)) summaryCache.delete(k);
 }
 
-// API key 解析链:进程 env → ~/.dsh/.credentials.yaml 的 refs 段。
-// DSH 把凭据集中在 credentials 文件里管理(不一定导出到 web 宿主的 env),
-// 轻量正则解析,不引 yaml 依赖。结果缓存,失败不缓存以便重试。
-let cachedApiKey;
-function getApiKey() {
-  if (cachedApiKey !== undefined) return cachedApiKey;
-  cachedApiKey = process.env.ZAI_CODING_CN_API_KEY || null;
-  if (!cachedApiKey) {
+// ---------------- LLM 选择机制(多 provider) ----------------
+// 候选链(按序):
+//   1. DSH_SA_MODEL 显式指定 ——"provider/model" 或裸 model 名
+//   2. settings.yaml 的 agent-default-model(GUI 默认模型)
+//   3. settings 里其他能解析出凭据的 provider,按声明顺序,取其首个模型
+// 凭据解析:进程 env(先 settings 的 apiKeyEnv,再 pi-ai 注册表 env 名)
+//   → ~/.dsh/.credentials.yaml 的 refs(轻量正则,不引 yaml 依赖)。
+// endpoint:从 dsh 安装内的 pi-ai provider 注册表运行时解析(GUI 同源,
+//   不硬编码;注册表找不到时退回内置兜底映射)。
+// 探活:401/403/网络错误 → 当前候选阵亡 30 分钟,自动切下一个。
+
+function parseSettingsYaml() {
+  const out = { defaultProvider: "", defaultModel: "", providers: [] };
+  try {
+    const raw = readFileSync(join(dshHome(), "settings.yaml"), "utf8");
+    const dm = /agent-default-model:\s*\n\s*provider:\s*(\S+)[\s\S]*?\n\s*model:\s*(\S+)/.exec(raw);
+    if (dm) {
+      out.defaultProvider = dm[1];
+      out.defaultModel = dm[2];
+    }
+    const pm = /llm-pi-ai:\s*\n\s*providers:\s*\n([\s\S]*?)(?=\n\S|$)/.exec(raw);
+    if (pm) {
+      let cur = null;
+      for (const line of pm[1].split("\n")) {
+        const pid = /^ {4}([A-Za-z0-9_-]+):\s*$/.exec(line);
+        if (pid) {
+          cur = { id: pid[1], apiKeyEnv: "", models: [] };
+          out.providers.push(cur);
+          continue;
+        }
+        if (!cur) continue;
+        const env = /^ {6}apiKeyEnv:\s*(\S+)/.exec(line);
+        if (env) cur.apiKeyEnv = env[1];
+        const mid = /^ {8}- id:\s*(\S+)/.exec(line);
+        if (mid) cur.models.push(mid[1]);
+      }
+    }
+  } catch (e) {}
+  return out;
+}
+
+// pi-ai provider 注册表:id -> { baseUrl, envKeys }
+// 搜索路径:① DSH_SA_PI_AI_DIR 显式指定;② 宿主入口(process.argv[1])上溯
+// ——生产环境即 dsh 安装树;③ node 可执行文件的全局 node_modules(nvm/
+// 系统安装都在 <prefix>/lib/node_modules);④ 内置兜底映射(注册表优先)。
+const PI_AI_FALLBACK = new Map([
+  ["zai-coding-cn", { baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4", envKeys: ["ZAI_CODING_CN_API_KEY"] }],
+]);
+
+function readCredentialEnv(envName) {
+  if (process.env[envName]) return process.env[envName];
+  try {
+    const raw = readFileSync(join(dshHome(), ".credentials.yaml"), "utf8");
+    const re = new RegExp(envName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ':\\s*["\']?([^"\'\\n]+)["\']?');
+    const m = re.exec(raw);
+    if (m && m[1].trim()) return m[1].trim();
+  } catch (e) {}
+  return null;
+}
+
+function scanPiAiProviders() {
+  const map = new Map(PI_AI_FALLBACK);
+  const roots = [];
+  if (process.env.DSH_SA_PI_AI_DIR) roots.push(process.env.DSH_SA_PI_AI_DIR);
+  try {
+    roots.push(dirname(realpathSync(process.argv[1])));
+  } catch (e) {}
+  roots.push(dirname(process.execPath));
+  for (const root of roots) {
+    let dir = root;
+    let providersDir = "";
+    for (let i = 0; i < 10 && !providersDir; i++) {
+      const c1 = join(dir, "node_modules", "@earendil-works", "pi-ai", "dist", "providers");
+      const c2 = join(dir, "..", "lib", "node_modules", "@deepseek-ai", "dsh", "node_modules", "@earendil-works", "pi-ai", "dist", "providers");
+      if (existsSync(c1)) { providersDir = c1; break; }
+      if (existsSync(c2)) { providersDir = c2; break; }
+      const next = dirname(dir);
+      if (next === dir) break;
+      dir = next;
+    }
+    if (!providersDir) continue;
+    let found = false;
     try {
-      const raw = readFileSync(join(dshHome(), ".credentials.yaml"), "utf8");
-      const m = /ZAI_CODING_CN_API_KEY:\s*["']?([^"'\n]+)["']?/.exec(raw);
-      if (m && m[1].trim()) cachedApiKey = m[1].trim();
-    } catch (e) {
-      /* 凭据文件不存在或不可读 */
+      for (const f of readdirSync(providersDir)) {
+        if (!f.endsWith(".js") || f.endsWith(".models.js")) continue;
+        const src = readFileSync(join(providersDir, f), "utf8");
+        const base = /baseUrl:\s*"([^"]+)"/.exec(src);
+        if (!base) continue;
+        const envKeys = [];
+        const em = /envApiKeyAuth\([^)]*?\[([^\]]*)\]/.exec(src);
+        if (em) for (const k of em[1].split(",")) {
+          const t = k.trim().replace(/^['"]|['"]$/g, "");
+          if (t) envKeys.push(t);
+        }
+        map.set(f.replace(/\.js$/, ""), { baseUrl: base[1], envKeys });
+        found = true;
+      }
+    } catch (e) {}
+    if (found) break;
+  }
+  return map;
+}
+
+let llmCandidates = null; // [{provider, model, baseUrl, key}]
+let llmIndex = 0;
+const llmDeadUntil = new Map(); // 候选下标 -> 阵亡截止时间
+
+function buildLlmCandidates() {
+  const list = [];
+  const pi = scanPiAiProviders();
+  const st = parseSettingsYaml();
+  const cred = (providerId) => {
+    const meta = pi.get(providerId);
+    const sp = st.providers.find((x) => x.id === providerId);
+    const envNames = [];
+    if (sp && sp.apiKeyEnv) envNames.push(sp.apiKeyEnv);
+    if (meta) envNames.push(...meta.envKeys);
+    for (const envName of envNames) {
+      const key = readCredentialEnv(envName);
+      if (key) return key;
+    }
+    return null;
+  };
+  const push = (providerId, model) => {
+    const meta = pi.get(providerId);
+    if (!meta || !meta.baseUrl) return;
+    const key = cred(providerId);
+    if (!key) return;
+    if (!model) {
+      const sp = st.providers.find((x) => x.id === providerId);
+      model = (sp && sp.models[0]) || "";
+    }
+    if (!model) return;
+    if (list.some((x) => x.provider === providerId && x.model === model)) return;
+    list.push({ provider: providerId, model, baseUrl: meta.baseUrl, key });
+  };
+  const override = process.env.DSH_SA_MODEL;
+  if (override) {
+    const slash = override.indexOf("/");
+    if (slash > 0) push(override.slice(0, slash), override.slice(slash + 1));
+    else {
+      for (const sp of st.providers) if (sp.models.includes(override)) push(sp.id, override);
+      if (!list.length && st.defaultProvider) push(st.defaultProvider, override);
     }
   }
-  return cachedApiKey;
+  if (st.defaultProvider && st.defaultModel) push(st.defaultProvider, st.defaultModel);
+  for (const sp of st.providers) if (sp.id !== st.defaultProvider) push(sp.id, sp.models[0]);
+  return list;
+}
+
+function currentLlm() {
+  if (!llmCandidates) llmCandidates = buildLlmCandidates() || [];
+  const now = Date.now();
+  for (let i = 0; i < llmCandidates.length; i++) {
+    const idx = (llmIndex + i) % llmCandidates.length;
+    if ((llmDeadUntil.get(idx) || 0) > now) continue;
+    llmIndex = idx;
+    return llmCandidates[idx];
+  }
+  return null;
+}
+
+function llmCandidateFailed() {
+  llmDeadUntil.set(llmIndex, Date.now() + 30 * 60 * 1000);
+}
+
+// 统一 chat 调用:候选探活,401/403/网络错误自动切下一个重试一次。
+// thinking:{type:"disabled"} 只发给 glm 系(别家不认识该字段,保守过滤)。
+async function llmChat(messages, maxTokens) {
+  let lastErr = new Error("no LLM candidate available");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const c = currentLlm();
+    if (!c) throw lastErr;
+    const isGlm = /zai|glm/i.test(c.provider + "/" + c.model);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 45000);
+    try {
+      const body = { model: c.model, messages, max_tokens: maxTokens || 400, temperature: 0.3 };
+      if (isGlm) body.thinking = { type: "disabled" };
+      const r = await fetch(c.baseUrl.replace(/\/$/, "") + "/chat/completions", {
+        method: "POST",
+        signal: ctrl.signal,
+        headers: { "content-type": "application/json", authorization: "Bearer " + c.key },
+        body: JSON.stringify(body),
+      });
+      if (r.status === 401 || r.status === 403) {
+        llmCandidateFailed();
+        lastErr = new Error("auth failed on " + c.provider);
+        continue;
+      }
+      if (!r.ok) throw new Error("llm http " + r.status + " on " + c.provider);
+      const data = await r.json();
+      const choice = data.choices && data.choices[0];
+      let text = "";
+      if (choice && choice.message && typeof choice.message.content === "string") text = choice.message.content;
+      if (!text && choice && choice.message && Array.isArray(choice.message.content)) {
+        text = choice.message.content.map((x) => (x && x.text) || "").join("");
+      }
+      text = String(text).replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+      if (!text) throw new Error("empty llm response from " + c.provider);
+      return text;
+    } catch (e) {
+      if (String((e && e.message) || "").startsWith("llm http")) throw e;
+      llmCandidateFailed();
+      lastErr = e;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  throw lastErr;
 }
 
 async function llmComplete(userText, maxTokens) {
@@ -253,6 +446,7 @@ async function runSummaries(sidFp) {
       } catch (e) {
         job.s.summaryState = "failed";
         job.s.failedAt = Date.now();
+        console.error("[whats-up] summary failed:", job.s.id, String((e && e.message) || e));
       }
       pendingSummaries = Math.max(0, pendingSummaries - 1);
     }
