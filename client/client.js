@@ -13,7 +13,7 @@
 /* halo 描边色随主题:浅色主题下继承的 currentColor 深 → 深色勾边;
    深色主题下 currentColor 浅 → 微光勾边。不支持 color-mix 的旧浏览器
    退化为无 halo 的纯金(即原方案 2 前身,可接受)。 */
-.saw-ic-halo{stroke:color-mix(in srgb,currentColor 55%,transparent);fill:color-mix(in srgb,currentColor 55%,transparent)}
+.saw-ic-halo{stroke:color-mix(in srgb,currentColor 78%,transparent);fill:color-mix(in srgb,currentColor 78%,transparent)}
 #sa-widget{flex:none;margin:0 0 8px;padding:8px 2px 8px;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);font-size:12px;color:inherit;min-width:0;cursor:pointer}
 #sa-widget .saw-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;font-weight:600;gap:6px}
 #sa-widget .saw-list{display:flex;flex-wrap:wrap;gap:4px}
@@ -262,10 +262,10 @@
       return open + '<path d="M2.8 8.4 L6.4 12 L13.2 4.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     }
     return open +
-      '<path class="saw-ic-halo" d="M8 2.8 V9" stroke-width="3.4" stroke-linecap="round" fill="none"/>' +
-      '<path d="M8 2.8 V9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>' +
-      '<circle class="saw-ic-halo" cx="8" cy="12.4" r="1.75"/>' +
-      '<circle cx="8" cy="12.4" r="1.15" fill="currentColor"/></svg>';
+      '<path class="saw-ic-halo" d="M8 2.4 V9.1" stroke-width="3.6" stroke-linecap="round" fill="none"/>' +
+      '<path d="M8 2.4 V9.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>' +
+      '<circle class="saw-ic-halo" cx="8" cy="12.5" r="1.85"/>' +
+      '<circle cx="8" cy="12.5" r="1.25" fill="currentColor"/></svg>';
   }
 
   function widgetHtml() {
@@ -283,8 +283,8 @@
     var c = data.counts || {};
     var head = document.getElementById("saw-ic");
     var rail = document.getElementById("saw-railic");
-    if (head) head.innerHTML = iconSvg(iconState(c), 16);
-    if (rail) rail.innerHTML = iconSvg(iconState(c), 18);
+    if (head) head.innerHTML = iconSvg(iconState(c), 18);
+    if (rail) rail.innerHTML = iconSvg(iconState(c), 20);
     var html = "";
     if (c.recent) html += '<span class="saw-chip" data-tab="recent" title="打开:在做">📌 在做 <b>' + c.recent + "</b></span>";
     if (c.half) html += '<span class="saw-chip half" data-tab="half" title="打开:别忘了">🔴 别忘了 <b>' + c.half + "</b></span>";
@@ -508,7 +508,7 @@
     }
     ov.innerHTML =
       '<div class="sao-head">' +
-      '<span class="sao-title">' + iconSvg(iconState(c), 15) + " What's up</span>" +
+      '<span class="sao-title">' + iconSvg(iconState(c), 17) + " What's up</span>" +
       '<span class="sao-sub">共 ' + (data.total || 0) + " 个 · 在做 " + (c.recent || 0) + " · 别忘了 " + (c.half || 0) + " · 没回 " + (c.unanswered || 0) +
       " · 自动 " + (c.board || 0) + " · 完成 " + (c.done || 0) + " · 生成于 " + timeAgo(data.generatedAt) + "</span>" +
       '<span class="sao-spacer"></span>' +
