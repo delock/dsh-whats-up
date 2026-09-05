@@ -262,9 +262,9 @@
   // 状态由红角标数字表达——图标管身份,角标管数量。
   function iconSvg(size) {
     return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" aria-hidden="true">' +
-      '<rect x="2.5" y="2.5" width="11" height="11" rx="2.6" stroke="currentColor" stroke-width="1.5" fill="none"/>' +
-      '<path d="M8 5.4 V8.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>' +
-      '<circle cx="8" cy="11.2" r="0.95" fill="currentColor"/>' +
+      '<rect x="2.2" y="2.2" width="11.6" height="11.6" rx="2.7" stroke="currentColor" stroke-width="1.6" fill="none"/>' +
+      '<path d="M8 4.7 V9.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/>' +
+      '<circle cx="8" cy="11.5" r="1.15" fill="currentColor"/>' +
       "</svg>";
   }
 
