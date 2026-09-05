@@ -26,6 +26,20 @@
 #sa-widget .saw-chip.half b{color:#f87171}
 #sa-widget .saw-chip.unans b{color:#fbbf24}
 #sa-widget .saw-chip.dim{opacity:.55}
+/* 悬停预览:侧栏小组件 mouseenter 后在右侧弹出,含 在做/别忘了 两栏速览。
+   浮层是小组件的子节点,鼠标从组件滑入浮层不会触发 mouseleave。 */
+#sa-widget .sah-panel{position:fixed;z-index:2147482500;display:none;width:330px;max-width:86vw;max-height:72vh;overflow:auto;padding:10px 12px;border-radius:10px;background:var(--dsw-specific-sidebar-fill,#fff);color:var(--dsw-alias-label-primary,#1f2430);box-shadow:0 8px 30px rgba(0,0,0,.25);border:1px solid color-mix(in srgb,currentColor 16%,transparent);text-align:left}
+#sa-widget .sah-panel.sah-show{display:block}
+#sa-widget .sah-sec-head{display:flex;align-items:center;gap:5px;font-weight:700;font-size:12px;padding:4px 2px;cursor:pointer;border-radius:6px}
+#sa-widget .sah-sec-head:hover{background:color-mix(in srgb,currentColor 10%,transparent)}
+#sa-widget .sah-sec-head b{margin-left:auto;opacity:.7}
+#sa-widget .sah-item{padding:6px 8px;border-radius:8px;cursor:pointer;min-width:0}
+#sa-widget .sah-item:hover{background:color-mix(in srgb,currentColor 10%,transparent)}
+#sa-widget .sah-t{font-weight:600;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sa-widget .sah-s{font-size:11.5px;opacity:.72;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#sa-widget .sah-when{font-size:10.5px;opacity:.5;margin-top:1px}
+#sa-widget .sah-empty{font-size:11.5px;opacity:.5;padding:4px 8px 8px}
+#sa-widget .sah-foot{font-size:10.5px;opacity:.55;padding:8px 2px 2px;border-top:1px solid color-mix(in srgb,currentColor 12%,transparent);margin-top:6px}
 #sa-widget.saw-rail{padding:8px 0 2px;margin-top:6px;display:flex;justify-content:center}
 #sa-widget.saw-rail .saw-head{display:none}
 #sa-widget.saw-rail .saw-list{display:none}
@@ -356,9 +370,11 @@
         var chip = e.target.closest && e.target.closest("[data-tab]");
         if (chip) {
           activeTab = chip.getAttribute("data-tab") || "recent";
+          hideHover();
           openPanel();
           return;
         }
+        hideHover();
         openPanel();
       });
     } else {
@@ -366,6 +382,7 @@
     }
     placeWidget(sidebar, w); // logo 之下、新会话按钮之上
     watchCollapse(sidebar, w);
+    bindHover(w);
     renderWidget();
     return w;
   }
@@ -395,9 +412,86 @@
     if (typeof ResizeObserver === "function") new ResizeObserver(apply).observe(sidebar);
   }
 
+  // ---------------- hover 预览 ----------------
+
+  var hoverOpenTimer = null, hoverCloseTimer = null;
+
+  function panelOpen() {
+    var ov = document.getElementById("sa-overlay");
+    return !!(ov && ov.classList.contains("sa-show"));
+  }
+
+  function hideHover() {
+    var p = document.getElementById("sah-panel");
+    if (p) p.classList.remove("sah-show");
+  }
+
+  function hoverSection(tabKey, icon, label) {
+    var c = data.counts || {};
+    var n = tabKey === "recent" ? c.recent || 0 : c[tabKey] || 0;
+    var list = sessionsOf(tabKey).filter(function (s) { return !s.markedDone && !s.archived; }).slice(0, 5);
+    var h = '<div class="sah-sec-head" data-tab="' + tabKey + '" title="在面板中查看全部">' + icon + " " + label + " <b>" + n + "</b></div>";
+    if (!list.length) return h + '<div class="sah-empty">无</div>';
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      var title = s.goal || s.title || "(无标题)";
+      h += '<div class="sah-item" data-sid="' + esc(s.id) + '" data-title="' + esc(s.title || "") + '">' +
+        '<div class="sah-t">' + esc(title) + "</div>" +
+        (s.stateText ? '<div class="sah-s">' + esc(s.stateText) + "</div>" : "") +
+        '<div class="sah-when">' + timeAgo(new Date(s.lastTime || 0).toISOString()) + "</div></div>";
+    }
+    return h;
+  }
+
+  function hoverHtml() {
+    if (!data) return '<div class="sah-empty">加载中…</div>';
+    return hoverSection("recent", "📌", "在做") + hoverSection("half", "🔴", "别忘了") +
+      '<div class="sah-foot">点条目跳回会话 · 点栏标题或 Alt+J 看全部</div>';
+  }
+
+  function placeHover(w) {
+    var p = document.getElementById("sah-panel");
+    if (!p) return;
+    var r = w.getBoundingClientRect();
+    var right = r.right + 10;
+    var maxLeft = window.innerWidth - p.offsetWidth - 8;
+    p.style.left = Math.max(8, Math.min(right, maxLeft)) + "px";
+    p.style.top = "0px";
+    var h = p.getBoundingClientRect().height;
+    var top = Math.max(8, Math.min(r.top, window.innerHeight - h - 8));
+    p.style.top = Math.round(top) + "px";
+  }
+
+  function bindHover(w) {
+    if (w.__sahBound) return;
+    w.__sahBound = true;
+    if (!document.getElementById("sah-panel")) {
+      var p = document.createElement("div");
+      p.className = "sah-panel";
+      p.id = "sah-panel";
+      w.appendChild(p);
+    }
+    w.addEventListener("mouseenter", function () {
+      if (panelOpen()) return;
+      if (hoverCloseTimer) { clearTimeout(hoverCloseTimer); hoverCloseTimer = null; }
+      hoverOpenTimer = setTimeout(function () {
+        var panel = document.getElementById("sah-panel");
+        if (!panel || panelOpen()) return;
+        panel.innerHTML = hoverHtml();
+        panel.classList.add("sah-show");
+        placeHover(w);
+      }, 220);
+    });
+    w.addEventListener("mouseleave", function () {
+      if (hoverOpenTimer) { clearTimeout(hoverOpenTimer); hoverOpenTimer = null; }
+      hoverCloseTimer = setTimeout(hideHover, 220);
+    });
+  }
+
   // ---------------- panel ----------------
 
   function openPanel() {
+    hideHover();
     var ov = document.getElementById("sa-overlay");
     if (!ov) {
       ov = document.createElement("div");
@@ -415,6 +509,12 @@
         }
         var btn = e.target.closest && e.target.closest(".sao-refresh");
         if (btn) refresh(true);
+        var hItem = e.target.closest && e.target.closest(".sah-item");
+        if (hItem) {
+          hideHover();
+          jump(hItem.getAttribute("data-sid") || "", hItem.getAttribute("data-title") || "");
+          return;
+        }
         var doneBtn = e.target.closest && e.target.closest(".sao-done");
         if (doneBtn) { toggleDone(doneBtn); return; }
         var card = e.target.closest && e.target.closest(".sao-card");
