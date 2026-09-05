@@ -105,7 +105,7 @@
   var activeTab = "recent";
   var pollTimer = null;
   var fillTimer = null; // 摘要还在生成时的短间隔重拉
-  var POLL_MS = 10 * 60 * 1000;
+  var POLL_MS = 60 * 60 * 1000; // 后台兜底轮询:任务清点类不需要高频,看的时候才拉
 
   var STATUS = {
     recent: { label: "近期工作", color: "#c4b5fd", icon: "📌" },
@@ -153,9 +153,11 @@
   // ---------------- data ----------------
 
   var lastPending = 0;
+  var lastFetchAt = 0;
   function refresh(fresh) {
     if (busy) return Promise.resolve();
     busy = true;
+    lastFetchAt = Date.now();
     var q = fresh ? "?fresh=1" : "";
     return api("/api/whats-up/data" + q)
       .then(function (v) {
@@ -667,6 +669,13 @@
     refresh(false);
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(function () { refresh(false); }, POLL_MS);
+    // 切回浏览器标签页时,若数据已陈旧(>5 分钟)则拉一次——
+    // "看的时候是新的"比高频轮询更符合这类工具的使用节奏
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && Date.now() - lastFetchAt > 5 * 60 * 1000) {
+        refresh(false);
+      }
+    });
   }
 
   function apply(ctx) {
