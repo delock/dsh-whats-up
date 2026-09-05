@@ -264,7 +264,8 @@ async function runSummaries(sidFp) {
     }
     const key = tab + "|" + members.map((s) => s.id + ":" + (s.goal || "") + "/" + (s.stateText || "")).join("|").slice(0, 4000);
     if (digestCache.has(key)) {
-      tabDigests[tab] = digestCache.get(key);
+      const hit = digestCache.get(key);
+      tabDigests[tab] = typeof hit === "string" ? hit : hit.text;
       continue;
     }
     // 只等真正在生成队列里的摘要(pendingSummaries);被安静窗口推迟的
@@ -276,7 +277,8 @@ async function runSummaries(sidFp) {
         .map((s) => "- " + (s.goal || s.title) + " —— " + (s.stateText || ""))
         .join("\n");
       const text = await llmDigest("以下是我最近的一些 DSH 工作会话的单行概括(分类: " + tab + ")。请用一到两句中文(不超过 90 字)总述这些会话合起来反映我在做什么、整体状态如何。直接输出总述:\n" + lines);
-      digestCache.set(key, text);
+      digestCache.set(key, { text, at: Date.now() });
+      scheduleDigestSave();
       tabDigests[tab] = text;
     } catch (e) {
       tabDigests[tab] = "";
@@ -294,7 +296,39 @@ async function llmDigest(userText) {
   )).slice(0, 160);
 }
 
-const digestCache = new Map();
+const digestCache = new Map(); // key(内容指纹) -> {text, at};持久化,重启即得
+const DIGEST_FILE = join(dshHome(), "whats-up.digests.json");
+let digestSaveTimer = null;
+
+async function loadDigestCache() {
+  try {
+    const arr = JSON.parse(await readFile(DIGEST_FILE, "utf8"));
+    if (Array.isArray(arr)) {
+      for (const e of arr) {
+        if (e && typeof e.key === "string" && typeof e.text === "string") {
+          digestCache.set(e.key, { text: e.text, at: Number(e.at) || 0 });
+        }
+      }
+    }
+  } catch (e) {}
+}
+
+function scheduleDigestSave() {
+  if (digestSaveTimer) return;
+  digestSaveTimer = setTimeout(async () => {
+    digestSaveTimer = null;
+    // 上限 200 条,丢最旧
+    let entries = [...digestCache.entries()].map(([key, v]) => ({ key, text: v.text, at: v.at || 0 }));
+    if (entries.length > 200) {
+      entries.sort((a, b) => b.at - a.at);
+      entries = entries.slice(0, 200);
+    }
+    try {
+      const { writeFile: wf } = await import("node:fs/promises");
+      await wf(DIGEST_FILE, JSON.stringify(entries), "utf8");
+    } catch (e) {}
+  }, 3000);
+}
 
 // ---------------------------------------------------------------- per-file analysis
 
@@ -664,7 +698,7 @@ async function scan(force) {
 
 let summaryCacheLoaded = null;
 function loadSummaryCacheOnce() {
-  if (!summaryCacheLoaded) summaryCacheLoaded = loadSummaryCache();
+  if (!summaryCacheLoaded) summaryCacheLoaded = loadSummaryCache().then(() => loadDigestCache());
   return summaryCacheLoaded;
 }
 
