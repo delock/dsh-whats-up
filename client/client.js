@@ -277,18 +277,31 @@
     return null;
   }
 
-  // 在侧栏范围内找"新会话"按钮(限定范围,避免匹配到弹窗等其他 New 按钮)
+  // 在侧栏范围内找"新会话"按钮。首选结构类名([class*=newSession],宿主侧栏
+  // 组件的 hashed 前缀会随构建变化,用包含匹配;折叠成图标栏时按钮没有
+  // 文字,类名匹配仍有效);退回文字匹配。
   function findNewButton(sidebar) {
+    var el = sidebar.querySelector('[class*="newSession"]');
+    if (el) return el;
     var btns = sidebar.querySelectorAll("button"), i;
     for (i = 0; i < btns.length; i++) if (/(new|新建)/i.test(btns[i].textContent || "")) return btns[i];
     return null;
   }
 
-  // 放置策略:新会话按钮之前(logo 之下、按钮之上);找不到按钮则退回侧栏顶部
+  // 放置策略:logo 行之后、新会话按钮之前(logoRow/newSession 是兄弟节点,
+  // 插在 newSession 前即落在两者之间);找不到则退回侧栏顶部
   function placeWidget(sidebar, w) {
     var btn = findNewButton(sidebar);
-    if (btn && btn.parentNode) btn.parentNode.insertBefore(w, btn);
-    else sidebar.insertBefore(w, sidebar.firstChild);
+    if (btn && btn.parentNode) {
+      btn.parentNode.insertBefore(w, btn);
+      return;
+    }
+    var logoRow = sidebar.querySelector('[class*="logoRow"]');
+    if (logoRow && logoRow.parentNode) {
+      logoRow.parentNode.insertBefore(w, logoRow.nextSibling);
+      return;
+    }
+    sidebar.insertBefore(w, sidebar.firstChild);
   }
 
   function mountInSidebar(sidebar) {
