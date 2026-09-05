@@ -10,6 +10,10 @@
   var CSS_TEXT = `
 .saw-ic-gold{color:#f5c542}
 .saw-ic-dim{opacity:.55}
+/* halo 描边色随主题:浅色主题下继承的 currentColor 深 → 深色勾边;
+   深色主题下 currentColor 浅 → 微光勾边。不支持 color-mix 的旧浏览器
+   退化为无 halo 的纯金(即原方案 2 前身,可接受)。 */
+.saw-ic-halo{stroke:color-mix(in srgb,currentColor 55%,transparent);fill:color-mix(in srgb,currentColor 55%,transparent)}
 #sa-widget{flex:none;margin:0 0 8px;padding:8px 2px 8px;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);font-size:12px;color:inherit;min-width:0;cursor:pointer}
 #sa-widget .saw-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;font-weight:600;gap:6px}
 #sa-widget .saw-list{display:flex;flex-wrap:wrap;gap:4px}
@@ -257,7 +261,11 @@
     if (state === "ok") {
       return open + '<path d="M2.8 8.4 L6.4 12 L13.2 4.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
     }
-    return open + '<path d="M8 2.8 V9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/><circle cx="8" cy="12.4" r="1.15" fill="currentColor"/></svg>';
+    return open +
+      '<path class="saw-ic-halo" d="M8 2.8 V9" stroke-width="3.4" stroke-linecap="round" fill="none"/>' +
+      '<path d="M8 2.8 V9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" fill="none"/>' +
+      '<circle class="saw-ic-halo" cx="8" cy="12.4" r="1.75"/>' +
+      '<circle cx="8" cy="12.4" r="1.15" fill="currentColor"/></svg>';
   }
 
   function widgetHtml() {
