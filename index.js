@@ -267,7 +267,9 @@ async function runSummaries(sidFp) {
       tabDigests[tab] = digestCache.get(key);
       continue;
     }
-    if (members.some((s) => s.summaryState === "pending")) continue; // 等单会话摘要齐了再总述
+    // 只等真正在生成队列里的摘要(pendingSummaries);被安静窗口推迟的
+    // (还在写的会话)不算——否则活跃会话会永远堵住总述不生成
+    if (pendingSummaries > 0) continue;
     try {
       const lines = members
         .slice(0, 15)
