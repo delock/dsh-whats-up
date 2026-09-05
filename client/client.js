@@ -369,6 +369,13 @@
       w.id = "sa-widget";
       w.innerHTML = widgetHtml();
       w.addEventListener("click", function (e) {
+        // 悬停速览条目:跳回会话(优先级最高,浮层是小组件子节点,点击冒泡到此)
+        var hItem = e.target.closest && e.target.closest(".sah-item");
+        if (hItem) {
+          hideHover();
+          jump(hItem.getAttribute("data-sid") || "", hItem.getAttribute("data-title") || "");
+          return;
+        }
         var chip = e.target.closest && e.target.closest("[data-tab]");
         if (chip) {
           activeTab = chip.getAttribute("data-tab") || "recent";
@@ -511,12 +518,6 @@
         }
         var btn = e.target.closest && e.target.closest(".sao-refresh");
         if (btn) refresh(true);
-        var hItem = e.target.closest && e.target.closest(".sah-item");
-        if (hItem) {
-          hideHover();
-          jump(hItem.getAttribute("data-sid") || "", hItem.getAttribute("data-title") || "");
-          return;
-        }
         var doneBtn = e.target.closest && e.target.closest(".sao-done");
         if (doneBtn) { toggleDone(doneBtn); return; }
         var card = e.target.closest && e.target.closest(".sao-card");
