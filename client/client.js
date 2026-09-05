@@ -277,6 +277,20 @@
     return null;
   }
 
+  // 在侧栏范围内找"新会话"按钮(限定范围,避免匹配到弹窗等其他 New 按钮)
+  function findNewButton(sidebar) {
+    var btns = sidebar.querySelectorAll("button"), i;
+    for (i = 0; i < btns.length; i++) if (/(new|新建)/i.test(btns[i].textContent || "")) return btns[i];
+    return null;
+  }
+
+  // 放置策略:新会话按钮之前(logo 之下、按钮之上);找不到按钮则退回侧栏顶部
+  function placeWidget(sidebar, w) {
+    var btn = findNewButton(sidebar);
+    if (btn && btn.parentNode) btn.parentNode.insertBefore(w, btn);
+    else sidebar.insertBefore(w, sidebar.firstChild);
+  }
+
   function mountInSidebar(sidebar) {
     var w = document.getElementById("sa-widget");
     if (!w) {
@@ -287,7 +301,7 @@
     } else {
       w.style.cssText = "";
     }
-    sidebar.insertBefore(w, sidebar.firstChild); // 永远在侧栏最上方(会话列表之上)
+    placeWidget(sidebar, w); // logo 之下、新会话按钮之上
     watchCollapse(sidebar, w);
     renderWidget();
     return w;
@@ -300,11 +314,13 @@
     var apply = function () {
       w.classList.toggle("saw-rail", sidebar.getBoundingClientRect().width <= RAIL_MAX_WIDTH);
     };
-    // 位置守护:React/宿主重渲染可能移除或挪动外来节点,发现不在首位就归位
+    // 位置守护:React/宿主重渲染可能移除/挪动外来节点或重建按钮,
+    // 断言"仍紧贴新会话按钮之前",不满足就重新放置
     var reassert = function () {
-      if (w.parentNode !== sidebar || sidebar.firstElementChild !== w) {
-        sidebar.insertBefore(w, sidebar.firstChild);
-      }
+      var btn = findNewButton(sidebar);
+      var placed = btn && btn.parentNode && w.parentNode === btn.parentNode && w.nextSibling === btn;
+      var fallback = !btn && w.parentNode === sidebar && sidebar.firstElementChild === w;
+      if (!placed && !fallback) placeWidget(sidebar, w);
     };
     apply();
     reassert();
