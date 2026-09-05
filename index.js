@@ -206,20 +206,27 @@ async function ensureSummaries(sidFp) {
 async function runSummaries(sidFp) {
   const targets = currentTargets();
 
-  // 待补摘要:缓存缺失或指纹变了
+  // 待补摘要:缓存缺失或指纹变了。安静窗口:最后事件 <10 分钟的会话
+  // 视为"还在写",沿用旧摘要(哪怕指纹已变)——给正在写的草稿反复拍照
+  // 只会立刻过时,纯浪费 token;停下来 10 分钟后的下次拉取才出定稿。
+  const QUIET_MS = 10 * 60 * 1000;
   const pending = [];
   for (const s of targets) {
     const fp = sidFp.get(s.id) || s.__fp || "";
     const hit = summaryCache.get(s.id);
+    const hot = Date.now() - s.lastTime < QUIET_MS;
     if (hit && hit.fp === fp) {
       s.goal = hit.goal;
       s.stateText = hit.state;
       s.goalAchieved = hit.achieved;
       s.summaryState = "ok";
+    } else if (hot && s.summaryState === "ok" && s.goal) {
+      // 还在写且已有旧摘要:沿用旧文案但不写缓存(指纹不匹配保留在缓存里,
+      // 安静后的下一轮自然会重算定稿——把旧文按新指纹写回会让它永远不更新)
     } else if (s.summaryState !== "pending") {
       s.summaryState = "pending";
     }
-    if (s.summaryState === "pending") pending.push({ s, fp });
+    if (s.summaryState === "pending" && !hot) pending.push({ s, fp });
   }
   pendingSummaries = pending.length;
 
