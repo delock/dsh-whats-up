@@ -86,7 +86,7 @@
   var STATUS = {
     recent: { label: "近期工作", color: "#c4b5fd", icon: "📌" },
     active: { label: "进行中", color: "#38bdf8", icon: "⚡" },
-    half: { label: "做到一半", color: "#f87171", icon: "🔴" },
+    half: { label: "别忘了", color: "#f87171", icon: "🔴" },
     unanswered: { label: "问了没回", color: "#fbbf24", icon: "🟡" },
     board: { label: "自动会话", color: "#7aa7ff", icon: "🔵" },
     done: { label: "已完成", color: "#34d399", icon: "🟢" },
@@ -247,7 +247,7 @@
     var c = data.counts || {};
     var html = "";
     if (c.recent) html += '<span class="saw-chip">📌 在做 <b>' + c.recent + "</b></span>";
-    if (c.half) html += '<span class="saw-chip half">🔴 半途 <b>' + c.half + "</b></span>";
+    if (c.half) html += '<span class="saw-chip half">🔴 别忘了 <b>' + c.half + "</b></span>";
     if (c.unanswered) html += '<span class="saw-chip unans">🟡 没回 <b>' + c.unanswered + "</b></span>";
     if (!html) html += '<span class="saw-chip dim">🟢 无待办会话</span>';
     row.innerHTML = html;
@@ -460,7 +460,7 @@
     ov.innerHTML =
       '<div class="sao-head">' +
       '<span class="sao-title">👀 What\'s up</span>' +
-      '<span class="sao-sub">共 ' + (data.total || 0) + " 个 · 在做 " + (c.recent || 0) + " · 半途 " + (c.half || 0) + " · 没回 " + (c.unanswered || 0) +
+      '<span class="sao-sub">共 ' + (data.total || 0) + " 个 · 在做 " + (c.recent || 0) + " · 别忘了 " + (c.half || 0) + " · 没回 " + (c.unanswered || 0) +
       " · 自动 " + (c.board || 0) + " · 完成 " + (c.done || 0) + " · 生成于 " + timeAgo(data.generatedAt) + "</span>" +
       '<span class="sao-spacer"></span>' +
       '<button class="sao-btn sao-refresh">刷新</button>' +
