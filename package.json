@@ -1,0 +1,40 @@
+{
+  "name": "dsh-whats-up",
+  "version": "1.0.0",
+  "description": "What's up for DeepSeek Harness: scans ~/.dsh/sessions on the host, extracts a goal + one-line status for every conversation (LLM, cached by fingerprint), classifies half-done / unanswered / recent / done, and answers 'what's up?' in one panel — a zero-maintenance todo board. Click any card to jump back into that session. · DSH 会话动态面板:host 端扫描会话流,为每个会话提取「目标 + 一句话现状」,自动发现做到一半/问了没回/近期在推进的事,点卡片直接跳回会话——一个不用手动维护的待办看板。",
+  "type": "module",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/delock/dsh-whats-up.git"
+  },
+  "keywords": [
+    "deepseek",
+    "harness",
+    "dsh",
+    "dsh-plugin",
+    "sessions",
+    "whats-up",
+    "todo"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  }
+}
