@@ -10,10 +10,12 @@
   var CSS_TEXT = `
 .saw-ic-gold{color:#f5c542}
 .saw-ic-dim{opacity:.55}
-/* halo 描边色随主题:浅色主题下继承的 currentColor 深 → 深色勾边;
-   深色主题下 currentColor 浅 → 微光勾边。不支持 color-mix 的旧浏览器
-   退化为无 halo 的纯金(即原方案 2 前身,可接受)。 */
-.saw-ic-halo{stroke:color-mix(in srgb,currentColor 78%,transparent);fill:color-mix(in srgb,currentColor 78%,transparent)}
+/* halo 描边色随主题。注意不能用 currentColor:图标自身 class 设了
+   color:#f5c542,currentColor 会解析成金色,勾边就隐形了。这里直接
+   引用 GUI 主题令牌(自定义属性沿 DOM 继承,不受 color 覆盖影响):
+   浅色主题 → 深色勾边;深色主题 → 浅色微光;面板深色头上则近似隐形,
+   金色本来就够对比。不支持 color-mix 的旧浏览器退化为纯金。 */
+.saw-ic-halo{stroke:color-mix(in srgb,var(--dsw-alias-label-primary,#333) 78%,transparent);fill:color-mix(in srgb,var(--dsw-alias-label-primary,#333) 78%,transparent)}
 #sa-widget{flex:none;margin:0 0 8px;padding:8px 2px 8px;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);font-size:12px;color:inherit;min-width:0;cursor:pointer}
 #sa-widget .saw-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;font-weight:600;gap:6px}
 #sa-widget .saw-list{display:flex;flex-wrap:wrap;gap:4px}
