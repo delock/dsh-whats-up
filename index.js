@@ -210,7 +210,7 @@ function stripInternal(s) {
 
 function currentTargets() {
   return [...enrichedBySid.values()]
-    .filter((s) => SUMMARY_TARGETS.has(s.status) || s.recent)
+    .filter((s) => !s.markedDone && (SUMMARY_TARGETS.has(s.status) || s.recent))
     .sort((a, b) => b.lastTime - a.lastTime)
     .slice(0, SUMMARY_HARD_CAP);
 }
@@ -278,7 +278,7 @@ async function runSummaries(sidFp) {
   // ---------------- tab 总述 ----------------
   const all = [...enrichedBySid.values()];
   for (const tab of DIGEST_TABS) {
-    const members = tab === "recent" ? all.filter((s) => s.recent) : all.filter((s) => s.status === tab && s.status !== "board");
+    const members = (tab === "recent" ? all.filter((s) => s.recent) : all.filter((s) => s.status === tab && s.status !== "board")).filter((s) => !s.markedDone);
     if (!members.length) {
       tabDigests[tab] = "";
       continue;
@@ -599,6 +599,7 @@ async function discover() {
 
 async function scan(force) {
   const now = Date.now();
+  await loadDoneOnce();
   const found = await discover();
 
   // 指纹检查:只对 新出现的 / mtime或size变了的 / 缓存缺失的 文件重新分析。
@@ -644,13 +645,27 @@ async function scan(force) {
     seenSids.add(s.id);
     const prev = enrichedBySid.get(s.id);
     const fp = sidFp.get(s.id) || "";
+    // 手动标记完成:应用标记 / 计数扣减 / 智能复活(标记后又有新事件则取消)
+    let markedDone = false;
+    if (doneMap.has(s.id)) {
+      if (s.lastTime > doneMap.get(s.id) + 60000) {
+        doneMap.delete(s.id); // 用户又回去做事了,复活
+        scheduleDoneSave();
+      } else {
+        markedDone = true;
+        counts[status] = Math.max(0, counts[status] - 1);
+        if (recent) counts.recent = Math.max(0, counts.recent - 1);
+      }
+    }
+    seenSids.add(s.id);
     if (prev && prev.__fp === fp) {
       // 内容没变:原地刷新分类字段,保留摘要状态
       prev.status = status;
       prev.recent = recent;
       prev.flags = flags;
+      prev.markedDone = markedDone;
     } else {
-      enrichedBySid.set(s.id, { ...s, status, recent, flags, __fp: fp });
+      enrichedBySid.set(s.id, { ...s, status, recent, flags, markedDone, __fp: fp });
     }
   }
   for (const sid of [...enrichedBySid.keys()]) if (!seenSids.has(sid)) enrichedBySid.delete(sid);
@@ -689,6 +704,48 @@ function ensureScanned(force) {
   return scanning;
 }
 
+// ---------------------------------------------------------------- 手动标记完成
+// host 端状态(~/.dsh/whats-up.done.json),多设备共享: sid -> { t }
+// 标记后:卡片沉底、计数扣减、摘要/总述排除。
+// 智能复活:标记之后会话又有新事件(lastTime > t + 60s 宽限)说明用户又回去
+// 做事了,自动取消标记。
+
+const DONE_FILE = join(dshHome(), "whats-up.done.json");
+const doneMap = new Map(); // sid -> t(标记时刻)
+let doneLoaded = null;
+let doneSaveTimer = null;
+
+function loadDoneOnce() {
+  if (!doneLoaded) {
+    doneLoaded = readFile(DONE_FILE, "utf8")
+      .then((raw) => {
+        const obj = JSON.parse(raw);
+        if (obj && typeof obj === "object") {
+          for (const [sid, v] of Object.entries(obj)) {
+            if (typeof sid === "string" && sid.length <= 120 && v && Number.isFinite(Number(v.t))) {
+              doneMap.set(sid, Number(v.t));
+            }
+          }
+        }
+      })
+      .catch(() => {});
+  }
+  return doneLoaded;
+}
+
+function scheduleDoneSave() {
+  if (doneSaveTimer) return;
+  doneSaveTimer = setTimeout(async () => {
+    doneSaveTimer = null;
+    const out = {};
+    for (const [sid, t] of doneMap.entries()) out[sid] = { t };
+    try {
+      const { writeFile: wf } = await import("node:fs/promises");
+      await wf(DONE_FILE, JSON.stringify(out), "utf8");
+    } catch (e) {}
+  }, 500);
+}
+
 // ---------------------------------------------------------------- route
 
 function json(res, status, body) {
@@ -704,18 +761,52 @@ function queryParam(req, key) {
   }
 }
 
+function readBody(req) {
+  return new Promise((resolve) => {
+    let buf = "";
+    req.on("data", (c) => (buf += c));
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(buf || "{}"));
+      } catch (e) {
+        resolve({});
+      }
+    });
+  });
+}
+
 export function apply(ctx) {
   ctx.effect(() => {
-    const route = {
-      kind: "exact",
-      path: "/api/whats-up/data",
-      handler: (req, res) => {
-        if (req.method !== "GET") return json(res, 405, { ok: false, error: "method-not-allowed" });
-        const fresh = queryParam(req, "fresh") === "1";
-        ensureScanned(fresh).then((v) => json(res, 200, v), (e) => json(res, 500, { ok: false, error: String((e && e.message) || e) }));
+    const routes = [
+      {
+        kind: "exact",
+        path: "/api/whats-up/data",
+        handler: (req, res) => {
+          if (req.method !== "GET") return json(res, 405, { ok: false, error: "method-not-allowed" });
+          const fresh = queryParam(req, "fresh") === "1";
+          ensureScanned(fresh).then((v) => json(res, 200, v), (e) => json(res, 500, { ok: false, error: String((e && e.message) || e) }));
+        },
       },
+      {
+        kind: "exact",
+        path: "/api/whats-up/done",
+        handler: (req, res) => {
+          if (req.method !== "POST") return json(res, 405, { ok: false, error: "method-not-allowed" });
+          readBody(req).then(async (body) => {
+            const sid = body && body.sid;
+            if (typeof sid !== "string" || !sid || sid.length > 120) return json(res, 400, { ok: false, error: "invalid sid" });
+            await loadDoneOnce();
+            if (body.done === false) doneMap.delete(sid);
+            else doneMap.set(sid, Date.now());
+            scheduleDoneSave();
+            json(res, 200, { ok: true, marked: doneMap.has(sid) });
+          });
+        },
+      },
+    ];
+    const disposers = routes.map((route) => ctx.webServer.register(route));
+    return () => {
+      for (const dispose of disposers) dispose();
     };
-    const dispose = ctx.webServer.register(route);
-    return () => dispose();
   }, "whats-up: routes");
 }

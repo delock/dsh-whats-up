@@ -44,7 +44,15 @@
 #sa-overlay .sao-card .sao-r1{display:flex;align-items:baseline;gap:8px;min-width:0}
 #sa-overlay .sao-card .sao-dot{width:8px;height:8px;border-radius:50%;flex:none;align-self:center}
 #sa-overlay .sao-card .sao-title{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#sa-overlay .sao-card .sao-when{flex:none;font-size:11px;opacity:.6}
+#sa-overlay .sao-card .sao-when{flex:none;font-size:11px;opacity:.6;margin-right:24px}
+#sa-overlay .sao-card .sao-done{position:absolute;top:6px;right:6px;width:20px;height:20px;line-height:18px;text-align:center;padding:0;border:none;border-radius:50%;background:rgba(52,211,153,.18);color:#6ee7b7;font-size:12px;cursor:pointer;opacity:0;pointer-events:none}
+#sa-overlay .sao-card:hover .sao-done{opacity:1;pointer-events:auto}
+#sa-overlay .sao-card .sao-done:hover{background:rgba(52,211,153,.4)}
+@media (hover:none){#sa-overlay .sao-card .sao-done{opacity:.55;pointer-events:auto}}
+#sa-overlay .sao-card.sa-marked{opacity:.45}
+#sa-overlay .sao-card.sa-marked:hover{opacity:.75}
+#sa-overlay .sao-card.sa-marked .sao-title{text-decoration:line-through}
+#sa-overlay .sao-card.sa-marked .sao-done{background:rgba(148,163,184,.25);color:#cbd5e1;opacity:.8;pointer-events:auto}
 #sa-overlay .sao-card .sao-summary{margin-top:5px;font-size:12.5px;color:#dbe4f0;line-height:1.5}
 #sa-overlay .sao-card .sao-summary-pending{opacity:.55;font-style:italic}
 #sa-overlay .sao-card .sao-summary-fallback{opacity:.8}
@@ -148,6 +156,31 @@
       if (fillTimer) clearTimeout(fillTimer);
       fillTimer = setTimeout(function () { fillTimer = null; refresh(false); }, 12000);
     }
+  }
+
+  // 标记完成(host 端持久,多设备同步):乐观更新本地状态立刻重排,再 POST 同步
+  function toggleDone(btn) {
+    var sid = btn.getAttribute("data-done-sid") || "";
+    if (!sid || !data) return;
+    var s = null;
+    for (var i = 0; i < data.sessions.length; i++) if (data.sessions[i].id === sid) { s = data.sessions[i]; break; }
+    if (!s) return;
+    var to = !s.markedDone;
+    s.markedDone = to; // 乐观更新 → renderPanel 立刻沉底
+    var c = data.counts || {};
+    if (to) {
+      c[s.status] = Math.max(0, (c[s.status] || 0) - 1);
+      if (s.recent) c.recent = Math.max(0, (c.recent || 0) - 1);
+    }
+    renderWidget();
+    renderPanel();
+    fetch("/api/whats-up/done", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ sid: sid, done: to }),
+    })
+      .then(function () { refresh(false); })
+      .catch(function () { refresh(false); });
   }
 
   function sessionsOf(tab) {
@@ -296,6 +329,8 @@
         }
         var btn = e.target.closest && e.target.closest(".sao-refresh");
         if (btn) refresh(true);
+        var doneBtn = e.target.closest && e.target.closest(".sao-done");
+        if (doneBtn) { toggleDone(doneBtn); return; }
         var card = e.target.closest && e.target.closest(".sao-card");
         if (card) jump(card.getAttribute("data-sid") || "", card.getAttribute("data-title") || "");
       });
@@ -345,7 +380,8 @@
     var title = s.goal || sessTitle;
     var origTitle = s.goal && s.goal !== sessTitle ? '<span class="sao-orig">💬 ' + esc(sessTitle) + "</span>" : "";
     var dotColor = activeTab === "recent" && s.recent ? STATUS.recent.color : st.color;
-    return '<div class="sao-card" data-sid="' + esc(s.id) + '" data-title="' + esc(sessTitle) + '">' +
+    return '<div class="sao-card' + (s.markedDone ? " sa-marked" : "") + '" data-sid="' + esc(s.id) + '" data-title="' + esc(sessTitle) + '">' +
+      '<button class="sao-done" data-done-sid="' + esc(s.id) + '" title="' + (s.markedDone ? "取消完成标记" : "标记为已完成,沉底") + '">' + (s.markedDone ? "↩" : "✓") + "</button>" +
       '<div class="sao-r1"><span class="sao-dot" style="background:' + (dotColor || "#888") + '"></span>' +
       '<span class="sao-title">' + esc(title) + "</span>" +
       '<span class="sao-when">' + timeAgo(new Date(s.lastTime || 0).toISOString()) + " · " + shortId(s.id) + "</span></div>" +
@@ -370,7 +406,11 @@
       return '<span class="sao-tab' + (activeTab === t ? " sa-active" : "") + '" data-tab="' + t + '">' +
         (STATUS[t].icon + " " + STATUS[t].label + " " + n) + "</span>";
     }).join("");
-    var list = sessionsOf(activeTab).sort(function (a, b) { return b.lastTime - a.lastTime; });
+    var list = sessionsOf(activeTab).sort(function (a, b) {
+      var dm = (a.markedDone ? 1 : 0) - (b.markedDone ? 1 : 0);
+      if (dm) return dm;
+      return b.lastTime - a.lastTime;
+    });
     var body = list.length
       ? list.map(cardHtml).join("")
       : '<div class="sao-empty">这里没有会话 👌</div>';
