@@ -15,7 +15,7 @@ DSH What's up · 会话动态面板:host 端扫描 `~/.dsh/sessions` 的会话�
 | 🔵 自动会话 | 首条消息以 `This session is for working on` 开头(pr-board 派生) |
 | 🟢 已完成 | 最后一条是完整回复 |
 | ⚪ 空白 | 从未有过真实用户消息 |
-| 📌 近期工作 | 7 天内活跃 + 有实质工作量(≥3 轮或 ≥10 次工具),不限分类——连续推进的项目(如给 Qwen 写 kernel)即使每轮都答完了也会 surfaced |
+| 📌 近期工作 | 7 天内活跃 + 有实质工作量(≥3 轮或 ≥10 次工具),不限分类——连续推进的项目(比如连做了几天的 kernel 开发)即使每轮都答完了也会 surfaced |
 
 ## LLM 摘要(host 端,glm)
 
@@ -40,10 +40,17 @@ DSH What's up · 会话动态面板:host 端扫描 `~/.dsh/sessions` 的会话�
 ## 安装(web profile)
 
 ```bash
-# ~/.dsh/profiles/web/package.json
-#   dependencies 加 "dsh-session-audit": "link:/home/akey/dsh"(link: 改代码只需重启)
-#   dsh.profile.bundles 加 "dsh-session-audit"
-cd ~/.dsh/profiles/web && pnpm install
+cd ~/.dsh/profiles/web
+
+# 1. 克隆本仓库到任意位置,例如 ~/dsh-whats-up
+git clone https://github.com/delock/dsh-whats-up.git ~/dsh-whats-up
+
+# 2. package.json 的 dsh.profile.bundles 加 "dsh-whats-up",
+#    dependencies 加 "dsh-whats-up": "link:<克隆路径>"
+#    (link: 协议是符号链接,改代码只需重启,无需重新 install)
+
+# 3. 安装并重启
+pnpm install
 # 重启 dsh web
 ```
 
