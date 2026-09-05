@@ -39,7 +39,7 @@
 #sa-overlay .sao-tab:hover{background:rgba(255,255,255,.12);color:#fff}
 #sa-overlay .sao-tab.sa-active{background:rgba(31,111,235,.35);border-color:rgba(96,165,250,.5);color:#fff}
 #sa-overlay .sao-body{flex:1;overflow:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;align-items:stretch;max-width:980px;width:100%;margin:0 auto;box-sizing:border-box}
-#sa-overlay .sao-card{padding:10px 12px;border-radius:10px;background:#1c2129;color:#d7dde5;font-size:12.5px;line-height:1.5;border:1px solid transparent;cursor:pointer;min-width:0}
+#sa-overlay .sao-card{position:relative;padding:10px 12px;border-radius:10px;background:#1c2129;color:#d7dde5;font-size:12.5px;line-height:1.5;border:1px solid transparent;cursor:pointer;min-width:0}
 #sa-overlay .sao-card:hover{border-color:rgba(255,255,255,.25);background:#232935}
 #sa-overlay .sao-card .sao-r1{display:flex;align-items:baseline;gap:8px;min-width:0}
 #sa-overlay .sao-card .sao-dot{width:8px;height:8px;border-radius:50%;flex:none;align-self:center}
