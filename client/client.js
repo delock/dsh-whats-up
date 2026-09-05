@@ -8,7 +8,7 @@
 // 那个被遗忘的会话。
 (function () {
   var CSS_TEXT = `
-#sa-widget{flex:none;margin-top:8px;padding:8px 2px 2px;border-top:1px solid color-mix(in srgb,currentColor 14%,transparent);font-size:12px;color:inherit;min-width:0;cursor:pointer}
+#sa-widget{flex:none;margin:0 0 8px;padding:8px 2px 8px;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);font-size:12px;color:inherit;min-width:0;cursor:pointer}
 #sa-widget .saw-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;font-weight:600;gap:6px}
 #sa-widget .saw-list{display:flex;flex-wrap:wrap;gap:4px}
 #sa-widget .saw-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:8px;font-size:11px;font-weight:600;background:color-mix(in srgb,currentColor 10%,transparent)}
@@ -287,7 +287,7 @@
     } else {
       w.style.cssText = "";
     }
-    sidebar.insertBefore(w, sidebar.lastChild);
+    sidebar.insertBefore(w, sidebar.firstChild); // 永远在侧栏最上方(会话列表之上)
     watchCollapse(sidebar, w);
     renderWidget();
     return w;
@@ -300,11 +300,19 @@
     var apply = function () {
       w.classList.toggle("saw-rail", sidebar.getBoundingClientRect().width <= RAIL_MAX_WIDTH);
     };
+    // 位置守护:React/宿主重渲染可能移除或挪动外来节点,发现不在首位就归位
+    var reassert = function () {
+      if (w.parentNode !== sidebar || sidebar.firstElementChild !== w) {
+        sidebar.insertBefore(w, sidebar.firstChild);
+      }
+    };
     apply();
+    reassert();
     new MutationObserver(function () {
       apply();
-      setTimeout(apply, 220);
-    }).observe(sidebar, { attributes: true, attributeFilter: ["class", "style"] });
+      reassert();
+      setTimeout(function () { apply(); reassert(); }, 220);
+    }).observe(sidebar, { attributes: true, attributeFilter: ["class", "style"], childList: true });
     if (typeof ResizeObserver === "function") new ResizeObserver(apply).observe(sidebar);
   }
 
