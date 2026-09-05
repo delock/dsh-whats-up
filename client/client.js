@@ -12,6 +12,8 @@
 #sa-widget .saw-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;font-weight:600;gap:6px}
 #sa-widget .saw-list{display:flex;flex-wrap:wrap;gap:4px}
 #sa-widget .saw-chip{display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:8px;font-size:11px;font-weight:600;background:color-mix(in srgb,currentColor 10%,transparent)}
+#sa-widget .saw-chip[data-tab]{cursor:pointer}
+#sa-widget .saw-chip[data-tab]:hover{background:color-mix(in srgb,currentColor 22%,transparent)}
 #sa-widget .saw-chip b{font-weight:700}
 #sa-widget .saw-chip.half b{color:#f87171}
 #sa-widget .saw-chip.unans b{color:#fbbf24}
@@ -246,9 +248,9 @@
     if (!row || !data) return;
     var c = data.counts || {};
     var html = "";
-    if (c.recent) html += '<span class="saw-chip">📌 在做 <b>' + c.recent + "</b></span>";
-    if (c.half) html += '<span class="saw-chip half">🔴 别忘了 <b>' + c.half + "</b></span>";
-    if (c.unanswered) html += '<span class="saw-chip unans">🟡 没回 <b>' + c.unanswered + "</b></span>";
+    if (c.recent) html += '<span class="saw-chip" data-tab="recent" title="打开:在做">📌 在做 <b>' + c.recent + "</b></span>";
+    if (c.half) html += '<span class="saw-chip half" data-tab="half" title="打开:别忘了">🔴 别忘了 <b>' + c.half + "</b></span>";
+    if (c.unanswered) html += '<span class="saw-chip unans" data-tab="unanswered" title="打开:问了没回">🟡 没回 <b>' + c.unanswered + "</b></span>";
     if (!html) html += '<span class="saw-chip dim">🟢 无待办会话</span>';
     row.innerHTML = html;
     if (badge) {
@@ -310,7 +312,15 @@
       w = document.createElement("div");
       w.id = "sa-widget";
       w.innerHTML = widgetHtml();
-      w.addEventListener("click", function () { openPanel(); });
+      w.addEventListener("click", function (e) {
+        var chip = e.target.closest && e.target.closest("[data-tab]");
+        if (chip) {
+          activeTab = chip.getAttribute("data-tab") || "recent";
+          openPanel();
+          return;
+        }
+        openPanel();
+      });
     } else {
       w.style.cssText = "";
     }
