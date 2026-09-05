@@ -285,8 +285,8 @@
     var c = data.counts || {};
     var head = document.getElementById("saw-ic");
     var rail = document.getElementById("saw-railic");
-    if (head) head.innerHTML = iconSvg(iconState(c), 18);
-    if (rail) rail.innerHTML = iconSvg(iconState(c), 20);
+    if (head) head.innerHTML = iconSvg(iconState(c), 20);
+    if (rail) rail.innerHTML = iconSvg(iconState(c), 22);
     var html = "";
     if (c.recent) html += '<span class="saw-chip" data-tab="recent" title="打开:在做">📌 在做 <b>' + c.recent + "</b></span>";
     if (c.half) html += '<span class="saw-chip half" data-tab="half" title="打开:别忘了">🔴 别忘了 <b>' + c.half + "</b></span>";
@@ -510,7 +510,7 @@
     }
     ov.innerHTML =
       '<div class="sao-head">' +
-      '<span class="sao-title">' + iconSvg(iconState(c), 17) + " What's up</span>" +
+      '<span class="sao-title">' + iconSvg(iconState(c), 19) + " What's up</span>" +
       '<span class="sao-sub">共 ' + (data.total || 0) + " 个 · 在做 " + (c.recent || 0) + " · 别忘了 " + (c.half || 0) + " · 没回 " + (c.unanswered || 0) +
       " · 自动 " + (c.board || 0) + " · 完成 " + (c.done || 0) + " · 生成于 " + timeAgo(data.generatedAt) + "</span>" +
       '<span class="sao-spacer"></span>' +
