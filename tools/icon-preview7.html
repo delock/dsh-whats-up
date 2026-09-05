@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>What's up · 复选框图标</title>
+<style>
+  body{margin:0;padding:24px;font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:#fff}
+  h2{font-size:14px;margin:28px 0 8px;color:#444}
+  h2:first-child{margin-top:0}
+  p.desc{font-size:12px;color:#888;margin:4px 0 10px}
+  .row{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .cell span{font-size:11px;color:#666}
+  .light{background:#fff;padding:20px;border-radius:10px;border:1px solid #e5e7eb}
+  .dark{background:#1c2129;padding:20px;border-radius:10px}
+  .dark .cell span{color:#9aa4b2}
+  .ic{color:#1f2430}
+  .dark .ic{color:#d7dde5}
+  .ic.gold{color:#f5c542}
+  .side{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#1f2430}
+  .chips{display:flex;gap:5px;margin-left:auto}
+  .chip{font-size:10.5px;padding:1px 7px;border-radius:8px;background:rgba(128,138,150,.14);white-space:nowrap}
+  .chip.half b{color:#dc2626}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0">
+  <defs>
+    <!-- 空方框(还有没勾完的) -->
+    <g id="box">
+      <rect x="2.5" y="2.5" width="11" height="11" rx="2.6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+    </g>
+    <!-- 方框 + 勾(完成) -->
+    <g id="boxcheck">
+      <rect x="2.5" y="2.5" width="11" height="11" rx="2.6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+      <path d="M5.1 8.3 L7.1 10.4 L11 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </g>
+    <!-- 方框 + 感叹号(烂尾提醒) -->
+    <g id="boxbang">
+      <rect x="2.5" y="2.5" width="11" height="11" rx="2.6" stroke="currentColor" stroke-width="1.5" fill="none"/>
+      <path d="M8 5.4 V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <circle cx="8" cy="11.3" r="0.95" fill="currentColor"/>
+    </g>
+  </defs>
+</svg>
+
+<h2>基础形:方框 + 勾 ☑</h2>
+<div class="light"><div class="row">
+  <div class="cell"><svg class="ic" width="16" height="16" viewBox="0 0 16 16"><use href="#boxcheck"/></svg><span>16</span></div>
+  <div class="cell"><svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#boxcheck"/></svg><span>20</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#boxcheck"/></svg><span>28</span></div>
+  <div class="cell"><svg class="ic" width="40" height="40" viewBox="0 0 16 16"><use href="#boxcheck"/></svg><span>40</span></div>
+  <div class="cell"><svg class="ic gold" width="28" height="28" viewBox="0 0 16 16"><use href="#boxcheck"/></svg><span>28 金</span></div>
+</div></div>
+
+<h2>三态方案 A:勾的状态说话</h2>
+<p class="desc">空框 = 还有没勾完的事(别忘了);框+! = 有烂尾提醒;框+勾 = 全部清零。语义和面板状态一一对应</p>
+<div class="light"><div class="row">
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#box"/></svg><span>在做(空框,待办中)</span></div>
+  <div class="cell"><svg class="ic gold" width="28" height="28" viewBox="0 0 16 16"><use href="#boxbang"/></svg><span>别忘了(金框+!)</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#boxcheck"/></svg><span>清零(框+勾)</span></div>
+</div></div>
+
+<h2>三态方案 B:只用颜色说话(勾永远是勾)</h2>
+<p class="desc">图标恒为 ☑,金色 = 有烂尾要注意,正常色 = 在做,变暗 = 清零。最简,但"有烂尾"的信号弱一些</p>
+<div class="light"><div class="row">
+  <div class="cell"><svg class="ic gold" width="28" height="28" viewBox="0 0 16 16"><use href="#boxcheck"/></svg><span>有烂尾(金)</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#boxcheck"/></svg><span>在做</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16" style="opacity:.5"><use href="#boxcheck"/></svg><span>清零(暗)</span></div>
+</div></div>
+
+<h2>侧栏效果模拟(方案 A 三态)</h2>
+<div class="light" style="display:flex;flex-direction:column;gap:10px;max-width:340px">
+  <div class="side">
+    <svg class="ic gold" width="20" height="20" viewBox="0 0 16 16"><use href="#boxbang"/></svg>
+    <span>What's up · 在忙啥</span>
+    <div class="chips"><span class="chip">📌 在做 <b>18</b></span><span class="chip half">🔴 别忘了 <b>3</b></span></div>
+  </div>
+  <div class="side">
+    <svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#box"/></svg>
+    <span>What's up · 在忙啥</span>
+    <div class="chips"><span class="chip">📌 在做 <b>18</b></span></div>
+  </div>
+  <div class="side" style="opacity:.8">
+    <svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#boxcheck"/></svg>
+    <span>What's up · 在忙啥</span>
+    <div class="chips"><span class="chip">🟢 全部清零</span></div>
+  </div>
+</div>
+
+<h2>深色底</h2>
+<div class="dark"><div class="row">
+  <div class="cell"><svg class="ic gold" width="28" height="28" viewBox="0 0 16 16"><use href="#boxbang"/></svg><span>金框+!</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#boxcheck"/></svg><span>框+勾</span></div>
+</div></div>
+
+</body>
+</html>

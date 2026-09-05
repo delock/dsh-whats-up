@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>What's up · 摸头图标 v2</title>
+<style>
+  body{margin:0;padding:24px;font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;background:#fff}
+  h2{font-size:14px;margin:28px 0 8px;color:#444}
+  h2:first-child{margin-top:0}
+  p.desc{font-size:12px;color:#888;margin:4px 0 10px}
+  .row{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+  .cell{display:flex;flex-direction:column;align-items:center;gap:6px}
+  .cell span{font-size:11px;color:#666}
+  .light{background:#fff;padding:20px;border-radius:10px;border:1px solid #e5e7eb}
+  .dark{background:#1c2129;padding:20px;border-radius:10px}
+  .dark .cell span{color:#9aa4b2}
+  .ic{color:#1f2430}
+  .dark .ic{color:#d7dde5}
+  .ic.gold{color:#f5c542}
+  .side{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#1f2430}
+  .chips{display:flex;gap:5px;margin-left:auto}
+  .chip{font-size:10.5px;padding:1px 7px;border-radius:8px;background:rgba(128,138,150,.14);white-space:nowrap}
+  .chip.half b{color:#dc2626}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0">
+  <defs>
+    <!-- D: 后脑勺圆顶 + 搭在头顶的完整手掌(指头垂落,不对称,不会读成帽子) -->
+    <g id="dome-hand">
+      <!-- 后脑勺:圆顶 + 颈肩 -->
+      <path d="M4.6 14 V9.2 A3.9 3.9 0 0 1 12.4 9.2 V11.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <path d="M12.4 11.5 C13.6 12.1 14.2 13 14.2 14" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <!-- 手掌:斜搭在左上,指头垂过头顶 -->
+      <path d="M5.1 6.3 C4.3 4.6 5.2 2.7 7 2.2 C7.9 1.95 8.8 2.15 9.5 2.7" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <path d="M9.5 2.7 C10.3 3.3 10.5 4.3 10 5.2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <path d="M10 5.2 C10.8 5.7 11 6.7 10.5 7.6" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <path d="M10.5 7.6 C11.1 8.2 11.1 9.1 10.6 9.7" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <!-- 掌根连接 -->
+      <path d="M5.1 6.3 C5.9 5.9 6.9 5.85 7.8 6.15" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+    </g>
+    <!-- F: 极简 — 圆顶头 + 头顶三道指印(拍拍) -->
+    <g id="dome-taps">
+      <path d="M4.4 14 V9 A3.9 3.9 0 0 1 12.2 9 V12" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <path d="M12.2 12 C13.4 12.6 14 13.4 14 14" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <path d="M5.6 5.9 Q6.4 4.6 7.8 4.2" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" fill="none"/>
+      <path d="M7.2 4 Q8.2 3 9.6 2.8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" fill="none"/>
+      <path d="M9 2.6 Q10.2 2.1 11.4 2.5" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" fill="none"/>
+    </g>
+    <!-- G: 圆顶 + 享受表情 + 小手套掌(治愈系,推荐) -->
+    <g id="dome-happy">
+      <path d="M4.6 14 V9.2 A3.9 3.9 0 0 1 12.4 9.2 V14" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" fill="none"/>
+      <!-- 闭眼享受 ^ ^ -->
+      <path d="M6.4 9.4 Q6.9 8.9 7.4 9.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+      <path d="M9.2 9.4 Q9.7 8.9 10.2 9.4" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+      <!-- 微笑 -->
+      <path d="M7.4 11.2 Q8.3 11.8 9.2 11.2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+      <!-- 头顶的小手掌:掌 + 两根指头 -->
+      <path d="M5.3 6.2 C4.9 4.5 6.1 2.9 7.9 2.8 C8.6 2.75 9.3 3 9.8 3.5 C10.6 4.2 10.7 5.3 10.2 6.2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+      <path d="M7.2 2.85 L7.05 4.4" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" fill="none"/>
+      <path d="M9 3.1 L8.9 4.6" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" fill="none"/>
+    </g>
+  </defs>
+</svg>
+
+<h2>D · 后脑勺 + 垂指的手掌</h2>
+<p class="desc">完整手掌斜搭头顶、指头沿头侧垂落——不对称轮廓避免"帽子"误读;最接近真实摸头视角</p>
+<div class="light"><div class="row">
+  <div class="cell"><svg class="ic" width="16" height="16" viewBox="0 0 16 16"><use href="#dome-hand"/></svg><span>16</span></div>
+  <div class="cell"><svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#dome-hand"/></svg><span>20</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#dome-hand"/></svg><span>28</span></div>
+  <div class="cell"><svg class="ic" width="40" height="40" viewBox="0 0 16 16"><use href="#dome-hand"/></svg><span>40</span></div>
+  <div class="cell"><svg class="ic gold" width="28" height="28" viewBox="0 0 16 16"><use href="#dome-hand"/></svg><span>28 金</span></div>
+</div></div>
+
+<h2>F · 极简:后脑勺 + 三道指印</h2>
+<p class="desc">头顶三道弧线 = 轻拍的手指印;16px 最稳,语义靠"拍拍"的动势传达</p>
+<div class="light"><div class="row">
+  <div class="cell"><svg class="ic" width="16" height="16" viewBox="0 0 16 16"><use href="#dome-taps"/></svg><span>16</span></div>
+  <div class="cell"><svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#dome-taps"/></svg><span>20</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#dome-taps"/></svg><span>28</span></div>
+  <div class="cell"><svg class="ic" width="40" height="40" viewBox="0 0 16 16"><use href="#dome-taps"/></svg><span>40</span></div>
+</div></div>
+
+<h2>G · 后脑勺 + 享受表情 + 小手掌(治愈系,推荐)</h2>
+<p class="desc">闭眼 ^ ^ + 微笑 + 头顶小手——"被摸头好舒服"的完整叙事;表情让"摸头"语义无法误读</p>
+<div class="light"><div class="row">
+  <div class="cell"><svg class="ic" width="16" height="16" viewBox="0 0 16 16"><use href="#dome-happy"/></svg><span>16</span></div>
+  <div class="cell"><svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#dome-happy"/></svg><span>20</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#dome-happy"/></svg><span>28</span></div>
+  <div class="cell"><svg class="ic" width="40" height="40" viewBox="0 0 16 16"><use href="#dome-happy"/></svg><span>40</span></div>
+  <div class="cell"><svg class="ic gold" width="28" height="28" viewBox="0 0 16 16"><use href="#dome-happy"/></svg><span>28 金</span></div>
+</div></div>
+
+<h2>侧栏效果模拟(G,浅色 + 金色)</h2>
+<div class="light" style="max-width:340px">
+  <div class="side">
+    <svg class="ic gold" width="20" height="20" viewBox="0 0 16 16"><use href="#dome-happy"/></svg>
+    <span>What's up · 在忙啥</span>
+    <div class="chips"><span class="chip">📌 在做 <b>18</b></span><span class="chip half">🔴 别忘了 <b>3</b></span></div>
+  </div>
+</div>
+<div style="height:10px"></div>
+<div class="light" style="max-width:340px">
+  <div class="side">
+    <svg class="ic" width="20" height="20" viewBox="0 0 16 16"><use href="#dome-happy"/></svg>
+    <span>What's up · 在忙啥(普通色)</span>
+    <div class="chips"><span class="chip">📌 在做 <b>18</b></span></div>
+  </div>
+</div>
+
+<h2>深色底三连</h2>
+<div class="dark"><div class="row">
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#dome-hand"/></svg><span>D</span></div>
+  <div class="cell"><svg class="ic" width="28" height="28" viewBox="0 0 16 16"><use href="#dome-taps"/></svg><span>F</span></div>
+  <div class="cell"><svg class="ic gold" width="28" height="28" viewBox="0 0 16 16"><use href="#dome-happy"/></svg><span>G 金</span></div>
+</div></div>
+
+</body>
+</html>

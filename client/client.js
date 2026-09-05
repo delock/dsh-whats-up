@@ -274,16 +274,23 @@
   }
 
   function iconSvg(state, size) {
-    var cls = state === "gold" ? "saw-ic-gold" : state === "ok" ? "saw-ic-dim" : "";
+    var cls = state === "bang" ? "saw-ic-gold" : state === "check" ? "saw-ic-dim" : "";
     var open = '<svg class="' + cls + '" width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="none" aria-hidden="true">';
-    if (state === "ok") {
-      return open + '<path d="M2.8 8.4 L6.4 12 L13.2 4.6" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var box = '<rect x="2.5" y="2.5" width="11" height="11" rx="2.6" stroke="currentColor" stroke-width="1.5" fill="none"/>';
+    if (state === "check") {
+      return open + box + '<path d="M5.1 8.3 L7.1 10.4 L11 5.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>';
     }
-    return open +
-      '<path class="saw-ic-halo" d="M8 2.4 V9.1" stroke-width="3.6" stroke-linecap="round" fill="none"/>' +
-      '<path d="M8 2.4 V9.1" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>' +
-      '<circle class="saw-ic-halo" cx="8" cy="12.5" r="1.85"/>' +
-      '<circle cx="8" cy="12.5" r="1.25" fill="currentColor"/></svg>';
+    if (state === "bang") {
+      return open + box +
+        '<path d="M8 5.4 V8.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/>' +
+        '<circle cx="8" cy="11.2" r="0.95" fill="currentColor"/></svg>';
+    }
+    if (state === "question") {
+      return open + box +
+        '<path d="M6.4 6.1 C6.4 5.1 7.1 4.4 8 4.4 C8.9 4.4 9.6 5.1 9.6 6 C9.6 6.8 9.1 7.2 8.6 7.6 C8.1 8 7.9 8.4 7.9 8.9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" fill="none"/>' +
+        '<circle cx="8" cy="10.9" r="0.9" fill="currentColor"/></svg>';
+    }
+    return open + box + "</svg>"; // 在做:空框
   }
 
   function widgetHtml() {
