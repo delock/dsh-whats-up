@@ -45,10 +45,9 @@
 #sa-overlay .sao-card .sao-dot{width:8px;height:8px;border-radius:50%;flex:none;align-self:center}
 #sa-overlay .sao-card .sao-title{font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #sa-overlay .sao-card .sao-when{flex:none;font-size:11px;opacity:.6;margin-right:24px}
-#sa-overlay .sao-card .sao-done{position:absolute;top:6px;right:6px;width:20px;height:20px;line-height:18px;text-align:center;padding:0;border:none;border-radius:50%;background:rgba(52,211,153,.18);color:#6ee7b7;font-size:12px;cursor:pointer;opacity:0;pointer-events:none}
-#sa-overlay .sao-card:hover .sao-done{opacity:1;pointer-events:auto}
-#sa-overlay .sao-card .sao-done:hover{background:rgba(52,211,153,.4)}
-@media (hover:none){#sa-overlay .sao-card .sao-done{opacity:.55;pointer-events:auto}}
+#sa-overlay .sao-card .sao-done{position:absolute;top:6px;right:6px;width:20px;height:20px;line-height:18px;text-align:center;padding:0;border:none;border-radius:50%;background:rgba(52,211,153,.22);color:#6ee7b7;font-size:12px;cursor:pointer;opacity:.6}
+#sa-overlay .sao-card:hover .sao-done{opacity:1}
+#sa-overlay .sao-card .sao-done:hover{background:rgba(52,211,153,.45)}
 #sa-overlay .sao-card.sa-marked{opacity:.45}
 #sa-overlay .sao-card.sa-marked:hover{opacity:.75}
 #sa-overlay .sao-card.sa-marked .sao-title{text-decoration:line-through}
