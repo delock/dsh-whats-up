@@ -58,7 +58,7 @@ function dshHome() {
   return process.env.DSH_HOME || join(homedir(), ".dsh");
 }
 
-// sid -> { v:2, fp, goal, state, at }(v2:goal+state 双字段;v1 的纯 text 条目弃用)
+// sid -> { v:3, fp, goal, state, achieved, at }(v3:+achieved;v1/v2 条目弃用重生成)
 const summaryCache = new Map();
 const SUMMARY_FILE = join(dshHome(), "whats-up.summaries.json");
 let summarySaveTimer = null;
@@ -68,7 +68,7 @@ async function loadSummaryCache() {
     const raw = JSON.parse(await readFile(SUMMARY_FILE, "utf8"));
     if (raw && typeof raw === "object") {
       for (const [sid, v] of Object.entries(raw)) {
-        if (v && v.v === 2 && typeof v.fp === "string" && typeof v.goal === "string" && typeof v.state === "string") {
+        if (v && v.v === 3 && typeof v.fp === "string" && typeof v.goal === "string" && typeof v.state === "string") {
           summaryCache.set(sid, v);
         }
       }
@@ -140,7 +140,9 @@ async function llmComplete(userText, maxTokens) {
               "(例:\"给 X 模型各版本做架构差异调研并验证\" 或 \"审完目标 PR 并给出结论\")\n" +
               "- status: 当前大致状态,一句话不超过 50 字,点出关键进展/下一步/阻塞" +
               "(例:\"代码全部完成,仅剩 GPU 实测,实例已关机\")\n" +
-              '只输出 JSON:{"goal":"...","status":"..."},不要其他内容。',
+              "- achieved: 该目标当前是否已达成(boolean)。只有确已完成才算 true;" +
+              "仍有剩余工作、被阻塞、在等待外部资源时为 false;信息不足可省略该字段\n" +
+              '只输出 JSON:{"goal":"...","status":"...","achieved":false},不要其他内容。',
           },
           { role: "user", content: userText },
         ],
@@ -177,7 +179,8 @@ function parseGoalStatus(text) {
     const o = JSON.parse(m[0]);
     const goal = typeof o.goal === "string" ? o.goal.trim().slice(0, 40) : "";
     const state = typeof o.status === "string" ? o.status.trim().slice(0, 90) : "";
-    if (goal && state) return { goal, state };
+    const achieved = typeof o.achieved === "boolean" ? o.achieved : undefined;
+    if (goal && state) return { goal, state, achieved };
   } catch (e) {}
   return null;
 }
@@ -244,6 +247,7 @@ async function runSummaries(sidFp) {
     if (hit && hit.fp === fp) {
       s.goal = hit.goal;
       s.stateText = hit.state;
+      s.goalAchieved = hit.achieved;
       s.summaryState = "ok";
     } else if (s.summaryState !== "pending") {
       s.summaryState = "pending";
@@ -263,8 +267,9 @@ async function runSummaries(sidFp) {
         if (!parsed) throw new Error("unparseable summary: " + raw.slice(0, 80));
         job.s.goal = parsed.goal;
         job.s.stateText = parsed.state;
+        job.s.goalAchieved = parsed.achieved;
         job.s.summaryState = "ok";
-        summaryCache.set(job.s.id, { v: 2, fp: job.fp, goal: parsed.goal, state: parsed.state, at: Date.now() });
+        summaryCache.set(job.s.id, { v: 3, fp: job.fp, goal: parsed.goal, state: parsed.state, achieved: parsed.achieved, at: Date.now() });
         scheduleSummarySave();
         trimSummaryCache();
       } catch (e) {
@@ -640,7 +645,16 @@ async function scan(force) {
   // 上,响应里永远看不到。只有指纹变了的会话才重建条目。
   const seenSids = new Set();
   for (const s of sessions) {
-    const { status, recent, flags } = classify(s, now);
+    const verdict = classify(s, now);
+    let { status, recent, flags } = verdict;
+    const prevEntry = enrichedBySid.get(s.id); // goalAchieved 由摘要流程写在 enriched 对象上
+    // 语义升级:对话层面收尾完好(done)但 LLM 从内容判定目标未达成
+    // (剩工作/被阻塞/等资源)→ 归入"别忘了"。规则的 done 只说明
+    // "最后一轮答完了",不等于"这件事做完了"。
+    if (status === "done" && prevEntry && prevEntry.goalAchieved === false) {
+      status = "half";
+      flags = [...flags, "goal-open"];
+    }
     const archived = archivedSet.has(s.id);
     if (archived) {
       counts.archived++; // 归档:不计入任何业务分类

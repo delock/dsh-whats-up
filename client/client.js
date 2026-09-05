@@ -130,6 +130,7 @@
 
   // ---------------- data ----------------
 
+  var lastPending = 0;
   function refresh(fresh) {
     if (busy) return Promise.resolve();
     busy = true;
@@ -138,10 +139,17 @@
       .then(function (v) {
         busy = false;
         if (v && v.ok) {
+          var wasPending = lastPending > 0;
           data = v;
+          lastPending = data.pendingSummaries || 0;
           renderWidget();
           renderPanel();
           scheduleFill();
+          // 摘要刚从 pending 归零:分类可能基于新摘要升级(done→half),
+          // 多刷一轮让计数和卡片同步
+          if (wasPending && lastPending === 0) {
+            setTimeout(function () { refresh(false); }, 3000);
+          }
         }
       })
       .catch(function () {
@@ -412,6 +420,7 @@
     if (has("open-turn")) flags.push('<span class="sao-flag warn">最后一个 turn 未结束</span>');
     if (has("interrupted")) flags.push('<span class="sao-flag warn">被中断</span>');
     if (has("unanswered")) flags.push('<span class="sao-flag warn">你问了没回</span>');
+    if (has("goal-open")) flags.push('<span class="sao-flag">🎯 目标未达成(内容判定)</span>');
     if (has("forked")) flags.push('<span class="sao-flag info">曾派生新会话</span>');
     var todos = "";
     if ((s.openTodos || []).length) {
