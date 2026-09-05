@@ -220,13 +220,17 @@ async function runSummaries(sidFp) {
       s.stateText = hit.state;
       s.goalAchieved = hit.achieved;
       s.summaryState = "ok";
-    } else if (hot && s.summaryState === "ok" && s.goal) {
-      // 还在写且已有旧摘要:沿用旧文案但不写缓存(指纹不匹配保留在缓存里,
-      // 安静后的下一轮自然会重算定稿——把旧文按新指纹写回会让它永远不更新)
+    } else if (hot) {
+      // 还在写:有旧摘要沿用旧文案(不写缓存,指纹错配留给安静后重算);
+      // 没有旧摘要的不标 pending——占位"状态提取中"会一直挂着误导人,
+      // 清掉状态让客户端走兜底文案,安静后的下一轮才真正提取
+      if (!(s.summaryState === "ok" && s.goal)) s.summaryState = "";
+    } else if (s.summaryState === "failed" && Date.now() - (s.failedAt || 0) > 5 * 60 * 1000) {
+      s.summaryState = "pending"; // 瞬时失败 5 分钟后自动重试,不是终态
     } else if (s.summaryState !== "pending") {
       s.summaryState = "pending";
     }
-    if (s.summaryState === "pending" && !hot) pending.push({ s, fp });
+    if (s.summaryState === "pending") pending.push({ s, fp });
   }
   pendingSummaries = pending.length;
 
@@ -248,6 +252,7 @@ async function runSummaries(sidFp) {
         trimSummaryCache();
       } catch (e) {
         job.s.summaryState = "failed";
+        job.s.failedAt = Date.now();
       }
       pendingSummaries = Math.max(0, pendingSummaries - 1);
     }
