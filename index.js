@@ -720,7 +720,10 @@ async function analyzeFile(file, sessionId) {
 // ---------------------------------------------------------------- classification
 
 function classify(s, now) {
-  const isBoard = s.firstUser.startsWith(BOARD_PREFIX);
+  // board 只认"真自动"会话:pr-board 派生的种子会话人类消息极少(种子+偶发
+  // 指令 ≤2 条)。一旦真人接管(≥3 条消息,比如从 PR review 演变成写博客),
+  // 就按正常规则分类——出身不该是终身标签。
+  const isBoard = s.firstUser.startsWith(BOARD_PREFIX) && s.nUser <= 2;
   const openTodo = s.openTodos.length > 0;
   const unanswered = s.nUser > 0 && (s.nAssistant === 0 || s.lastUserTime > s.lastAssistantTime);
 
