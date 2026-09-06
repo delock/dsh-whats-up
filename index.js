@@ -846,6 +846,9 @@ async function scan(force) {
     const archived = archivedSet.has(s.id);
     if (archived) {
       counts.archived++; // 归档:不计入任何业务分类
+    } else if (status === "blank") {
+      status = "blank"; // 空白(手滑点开的新建):不计入、不进面板,无信息量
+      continue;
     } else {
       counts[status]++;
       if (recent) counts.recent++;

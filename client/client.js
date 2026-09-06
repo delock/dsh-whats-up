@@ -106,10 +106,9 @@
     unanswered: { label: "问了没回", color: "#fbbf24", icon: "🟡" },
     board: { label: "自动会话", color: "#7aa7ff", icon: "🔵" },
     done: { label: "已完成", color: "#34d399", icon: "🟢" },
-    blank: { label: "空白", color: "#94a3b8", icon: "⚪" },
     archived: { label: "已归档", color: "#64748b", icon: "🗄" }
   };
-  var TABS = ["recent", "half", "unanswered", "active", "board", "done", "blank", "archived"];
+  var TABS = ["recent", "half", "unanswered", "active", "board", "done", "archived"];
 
   function api(path) {
     return fetch(path).then(function (r) { return r.json(); });
