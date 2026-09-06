@@ -1,6 +1,16 @@
 # dsh-whats-up
 
-DSH What's up · 会话动态面板:host 端扫描 `~/.dsh/sessions` 的会话事件流,把每个会话分类为
+> 你有没有面对着密密麻麻一堆 session tab,不知道哪个才是你刚才干到一半的任务?
+> 如果小绿点已经无法满足你了,那么 **What's up · 在忙啥** 能帮你抓住正在进行的核心任务。
+> 无需手动添加任务:插件通过分析对话,提取每个对话想达到的目标和跟进状态,并提醒你别忘了可能遗漏的任务。
+> 你只管按需开新 tab,后面的事就交给我吧。
+
+> Ever stared at a wall of session tabs, unsure which one was the task you left half-done?
+> When the little green dot isn't enough anymore, **What's up** keeps hold of what you're really working on.
+> No manual task entry: it reads your conversations, extracts each one's goal and current status,
+> and nudges you about the ones you might have dropped. Just open new tabs as you need — leave the rest to me.
+
+**DSH What's up · 会话动态面板**:host 端扫描 `~/.dsh/sessions` 的会话事件流,把每个会话分类为
 **近期工作 / 做到一半 / 问了没回 / 进行中 / 自动会话 / 已完成 / 空白**,并为每个
 会话生成 LLM 一行摘要、为每个 tab 生成总述;侧栏小组件显示数量,全屏面板点卡片
 直接跳回那个被遗忘的会话。
