@@ -31,7 +31,6 @@ function sessionsRoot() {
 }
 
 const ACTIVE_WINDOW_MS = 15 * 60 * 1000;
-const BOARD_PREFIX = "This session is for working on";
 const TEXT_CAP = 280; // per-excerpt character cap sent to the browser
 const TODO_CAP = 5; // open-todo items kept per session
 const RECENT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
@@ -569,6 +568,7 @@ function analyzeLines(lines, file, sessionId) {
     title: "",
     lastTime: 0,
     nUser: 0,
+    nShortUser: 0,
     nAssistant: 0,
     nTools: 0,
     nTurns: 0,
@@ -609,6 +609,9 @@ function analyzeLines(lines, file, sessionId) {
       const text = realUserText(ev.data);
       if (text !== null) {
         s.nUser++;
+        // 人类消息的典型长度;自动化插件的模板注入(几百字的种子/续注)
+        // 远超此阈值。用于行为式的自动化判定,不依赖任何插件私有格式。
+        if (text.length <= 250) s.nShortUser++;
         if (!s.firstUser) s.firstUser = capText(text, TEXT_CAP);
         s.lastUser = capText(text, TEXT_CAP);
         s.lastUserTime = ts;
@@ -720,10 +723,11 @@ async function analyzeFile(file, sessionId) {
 // ---------------------------------------------------------------- classification
 
 function classify(s, now) {
-  // board 只认"真自动"会话:pr-board 派生的种子会话人类消息极少(种子+偶发
-  // 指令 ≤2 条)。一旦真人接管(≥3 条消息,比如从 PR review 演变成写博客),
-  // 就按正常规则分类——出身不该是终身标签。
-  const isBoard = s.firstUser.startsWith(BOARD_PREFIX) && s.nUser <= 2;
+  // 行为式自动化判定(通用,不依赖任何插件的私有格式):会话从头到尾
+  // 没有任何一条"人类长度"(≤250 字)的短消息 → 自动化。模板注入的种子
+  // 和续注都是几百字长文;人类哪怕只跟一句"CI 为啥挂了?"就会脱离此分类。
+  // 出身不是终身标签,行为才是。
+  const isBoard = s.nUser > 0 && s.nShortUser === 0;
   const openTodo = s.openTodos.length > 0;
   const unanswered = s.nUser > 0 && (s.nAssistant === 0 || s.lastUserTime > s.lastAssistantTime);
 
