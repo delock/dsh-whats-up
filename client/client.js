@@ -234,9 +234,18 @@
       if (ov) ov.classList.remove("sa-show");
       return;
     }
-    // 兜底:按标题搜索(会话 id 形态可能不含目录前缀)
+    // 兜底:按标题搜索(会话 id 形态可能不含目录前缀)。
+    // 注意:search 是走 GUI 内部连接的 Promise——dsh web 重启后未刷新的
+    // 旧页面上它会永远 pending,不设超时的话用户得不到任何反馈(点击无声失败)。
     if (CTX.sessions.search && title) {
-      CTX.sessions.search(String(title).slice(0, 24)).then(function (res) {
+      var SEARCH_TIMEOUT_MS = 4000;
+      var searchP = Promise.resolve().then(function () {
+        return CTX.sessions.search(String(title).slice(0, 24));
+      });
+      var timeoutP = new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error("__timeout__")); }, SEARCH_TIMEOUT_MS);
+      });
+      Promise.race([searchP, timeoutP]).then(function (res) {
         var items = (res && res.ok && res.value && res.value.items) || [];
         for (var i = 0; i < items.length; i++) {
           if ((items[i].title || "") === title) {
@@ -247,8 +256,13 @@
           }
         }
         toast("没找到这个会话(可能已被清理)");
-      }, function () {
-        toast("没找到这个会话(可能已被清理)");
+      }, function (e) {
+        if (e && e.message === "__timeout__") {
+          // 连接无响应:dsh web 重启后浏览器页面没刷新时必然走到这里
+          toast("跳转无响应:页面与 dsh web 的连接可能已断开,请刷新页面(F5)后重试");
+        } else {
+          toast("没找到这个会话(可能已被清理)");
+        }
       });
       return;
     }
