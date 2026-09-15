@@ -786,9 +786,21 @@ async function discover() {
       if (!sd.isDirectory()) continue;
       // 目录名风格不一:session-<uuid> / 裸 <uuid> / main-session-<uuid>,
       // 一律以"目录里有没有会话文件"为准,id 从文件头 session 事件取权威值。
-      for (const fname of ["session.jsonl.zstd", "session.jsonl"]) {
-        out.push({ file: join(root, p.name, sd.name, fname), sessionId: sd.name });
+      // 文件名同样有代际:新版 DSH 写 session.v3.jsonl.zstd;同一目录可能
+      // 同时残留旧格式文件(续开的会话),取 mtime 最新的一个,避免同会话重复。
+      let best = null;
+      for (const fname of ["session.v3.jsonl.zstd", "session.jsonl.zstd", "session.jsonl"]) {
+        const file = join(root, p.name, sd.name, fname);
+        let st;
+        try {
+          st = await stat(file);
+        } catch (e) {
+          continue;
+        }
+        if (!st.isFile()) continue;
+        if (!best || st.mtimeMs > best.mtimeMs) best = { file, mtimeMs: st.mtimeMs };
       }
+      if (best) out.push({ file: best.file, sessionId: sd.name });
     }
   }
   return out;
