@@ -5,7 +5,7 @@
 // 在对应包就绪后解析;apply(ctx) 拿到客户端根上下文。
 // 面板数据全部来自 host 端 /api/whats-up/data(host 只在文件指纹变化时
 // 才重新分析,所以这里放心轮询)。点卡片 = CTX.sessions.open(sid) 直接跳回
-// 那个被遗忘的会话。
+// 那个被遗忘的会话。dsh >= 0.1.7-rc1 走 CTX.uiWorkspace.openSession(sid)。
 (function () {
   var CSS_TEXT = `
 #sa-widget{flex:none;margin:0 0 8px;padding:8px 2px 8px;border-bottom:1px solid color-mix(in srgb,currentColor 14%,transparent);font-size:12px;color:inherit;min-width:0;cursor:pointer}
@@ -217,15 +217,26 @@
 
   // ---------------- jump ----------------
 
-  function jump(sid, title) {
-    if (!CTX || !CTX.sessions || typeof CTX.sessions.open !== "function") {
-      toast("无法跳转:sessions 服务不可用");
-      return;
+  // 跳转入口随 dsh 版本不同:
+  //   dsh >= 0.1.7-rc1  ctx.uiWorkspace.openSession(target) —— 导航职责从
+  //     sessions 服务移给了视图层,sessions.open 已被删除;
+  //   旧版              ctx.sessions.open(sid)。
+  function openSessionTarget(target) {
+    if (CTX && CTX.uiWorkspace && typeof CTX.uiWorkspace.openSession === "function") {
+      CTX.uiWorkspace.openSession(target);
+      return true;
     }
+    if (CTX && CTX.sessions && typeof CTX.sessions.open === "function") {
+      CTX.sessions.open(target);
+      return true;
+    }
+    return false;
+  }
+
+  function jump(sid, title) {
     var ok = false;
     try {
-      CTX.sessions.open(sid);
-      ok = true;
+      ok = openSessionTarget(sid);
     } catch (e) {
       ok = false;
     }
@@ -240,7 +251,9 @@
     if (CTX.sessions.search && title) {
       var SEARCH_TIMEOUT_MS = 4000;
       var searchP = Promise.resolve().then(function () {
-        return CTX.sessions.search(String(title).slice(0, 24));
+        // rc1 起 search 必须传 AbortSignal;旧版多传的第二个参数会被忽略。
+        var signal = typeof AbortController === "function" ? new AbortController().signal : undefined;
+        return CTX.sessions.search(String(title).slice(0, 24), signal);
       });
       var timeoutP = new Promise(function (_, reject) {
         setTimeout(function () { reject(new Error("__timeout__")); }, SEARCH_TIMEOUT_MS);
@@ -249,7 +262,7 @@
         var items = (res && res.ok && res.value && res.value.items) || [];
         for (var i = 0; i < items.length; i++) {
           if ((items[i].title || "") === title) {
-            try { CTX.sessions.open(items[i].sessionId || items[i].id); } catch (e) {}
+            try { openSessionTarget(items[i].sessionId || items[i].id); } catch (e) {}
             var ov2 = document.getElementById("sa-overlay");
             if (ov2) ov2.classList.remove("sa-show");
             return;

@@ -100,41 +100,94 @@ function trimSummaryCache() {
 // ---------------- LLM 选择机制(多 provider) ----------------
 // 候选链(按序):
 //   1. DSH_SA_MODEL 显式指定 ——"provider/model" 或裸 model 名
-//   2. settings.yaml 的 agent-default-model(GUI 默认模型)
-//   3. settings 里其他能解析出凭据的 provider,按声明顺序,取其首个模型
-// 凭据解析:进程 env(先 settings 的 apiKeyEnv,再 pi-ai 注册表 env 名)
+//   2. 默认模型(profile patch 的 agent-default-model 行;0.1.6 前为 settings.yaml)
+//   3. 配置里其他能解析出凭据的 provider,按声明顺序,取其首个模型
+// 配置来源(按优先级):
+//   0.1.7+:~/.dsh/profiles/*/cordis.patch.yml 的 agent-default-model / llm-pi-ai 行
+//   旧版:~/.dsh/settings.yaml(0.1.7 迁移后改名 .imported,留作快照回退)
+// 凭据解析:进程 env(先 apiKeyEnv,再 pi-ai 注册表 env 名)
 //   → ~/.dsh/.credentials.yaml 的 refs(轻量正则,不引 yaml 依赖)。
 // endpoint:从 dsh 安装内的 pi-ai provider 注册表运行时解析(GUI 同源,
 //   不硬编码;注册表找不到时退回内置兜底映射)。
 // 探活:401/403/网络错误 → 当前候选阵亡 30 分钟,自动切下一个。
 
-function parseSettingsYaml() {
-  const out = { defaultProvider: "", defaultModel: "", providers: [] };
-  try {
-    const raw = readFileSync(join(dshHome(), "settings.yaml"), "utf8");
-    const dm = /agent-default-model:\s*\n\s*provider:\s*(\S+)[\s\S]*?\n\s*model:\s*(\S+)/.exec(raw);
-    if (dm) {
-      out.defaultProvider = dm[1];
-      out.defaultModel = dm[2];
+function parseLegacySettings(raw, out, seen) {
+  const dm = /agent-default-model:\s*\n\s*provider:\s*(\S+)[\s\S]*?\n\s*model:\s*(\S+)/.exec(raw);
+  if (dm && !out.defaultProvider) {
+    out.defaultProvider = dm[1];
+    out.defaultModel = dm[2];
+  }
+  const pm = /llm-pi-ai:\s*\n\s*providers:\s*\n([\s\S]*?)(?=\n\S|$)/.exec(raw);
+  if (!pm) return;
+  let cur = null;
+  for (const line of pm[1].split("\n")) {
+    const pid = /^ {4}([A-Za-z0-9_-]+):\s*$/.exec(line);
+    if (pid) {
+      if (seen.has(pid[1])) { cur = null; continue; }
+      cur = { id: pid[1], apiKeyEnv: "", models: [] };
+      seen.add(pid[1]);
+      out.providers.push(cur);
+      continue;
     }
-    const pm = /llm-pi-ai:\s*\n\s*providers:\s*\n([\s\S]*?)(?=\n\S|$)/.exec(raw);
-    if (pm) {
+    if (!cur) continue;
+    const env = /^ {6}apiKeyEnv:\s*(\S+)/.exec(line);
+    if (env) cur.apiKeyEnv = env[1];
+    const mid = /^ {8}- id:\s*(\S+)/.exec(line);
+    if (mid) cur.models.push(mid[1]);
+  }
+}
+
+function parseProfilePatch(raw, out, seen) {
+  for (const row of raw.split(/\n(?=- id: )/)) {
+    if (/^- id: agent-default-model\s*$/m.test(row) && !out.defaultProvider) {
+      const p = /^ {4}provider:\s*(\S+)\s*$/m.exec(row);
+      const m = /^ {4}model:\s*(\S+)\s*$/m.exec(row);
+      if (p && m) {
+        out.defaultProvider = p[1];
+        out.defaultModel = m[1];
+      }
+    } else if (/^- id: llm-pi-ai\s*$/m.test(row)) {
       let cur = null;
-      for (const line of pm[1].split("\n")) {
-        const pid = /^ {4}([A-Za-z0-9_-]+):\s*$/.exec(line);
+      for (const line of row.split("\n")) {
+        const pid = /^ {6}([A-Za-z0-9_-]+):\s*$/.exec(line);
         if (pid) {
+          if (seen.has(pid[1])) { cur = null; continue; }
           cur = { id: pid[1], apiKeyEnv: "", models: [] };
+          seen.add(pid[1]);
           out.providers.push(cur);
           continue;
         }
         if (!cur) continue;
-        const env = /^ {6}apiKeyEnv:\s*(\S+)/.exec(line);
+        const env = /^ {8}apiKeyEnv:\s*(\S+)/.exec(line);
         if (env) cur.apiKeyEnv = env[1];
-        const mid = /^ {8}- id:\s*(\S+)/.exec(line);
+        const mid = /^ {10}- id:\s*(\S+)/.exec(line);
         if (mid) cur.models.push(mid[1]);
       }
     }
+  }
+}
+
+function parseSettingsYaml() {
+  const out = { defaultProvider: "", defaultModel: "", providers: [] };
+  const seen = new Set();
+  const files = [];
+  try {
+    for (const p of readdirSync(join(dshHome(), "profiles"))) {
+      const f = join(dshHome(), "profiles", p, "cordis.patch.yml");
+      if (existsSync(f)) files.push(f);
+    }
   } catch (e) {}
+  files.push(join(dshHome(), "settings.yaml"), join(dshHome(), "settings.yaml.imported"));
+  for (const f of files) {
+    let raw;
+    try {
+      raw = readFileSync(f, "utf8");
+    } catch (e) {
+      continue;
+    }
+    parseProfilePatch(raw, out, seen);
+    parseLegacySettings(raw, out, seen);
+  }
   return out;
 }
 
