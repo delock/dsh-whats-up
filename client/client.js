@@ -217,13 +217,28 @@
 
   // ---------------- jump ----------------
 
+  // cordis 对未在 inject 里声明的服务访问会拦截(旧版只是 undefined,rc1 起直接
+  // 抛 "cannot get property ... without inject"),而把 "uiWorkspace" 写进 inject
+  // 又会让旧版 dsh 上插件永远等不到服务。用 ctx.reflect.get() 绕过 inject 限制
+  // 读取——新旧版本都通。
+  function resolveUiWorkspace() {
+    try {
+      if (CTX && CTX.reflect && typeof CTX.reflect.get === "function") {
+        var uw = CTX.reflect.get("uiWorkspace");
+        if (uw) return uw;
+      }
+    } catch (e) {}
+    return CTX ? CTX.uiWorkspace : undefined;
+  }
+
   // 跳转入口随 dsh 版本不同:
   //   dsh >= 0.1.7-rc1  ctx.uiWorkspace.openSession(target) —— 导航职责从
   //     sessions 服务移给了视图层,sessions.open 已被删除;
   //   旧版              ctx.sessions.open(sid)。
   function openSessionTarget(target) {
-    if (CTX && CTX.uiWorkspace && typeof CTX.uiWorkspace.openSession === "function") {
-      CTX.uiWorkspace.openSession(target);
+    var uw = resolveUiWorkspace();
+    if (uw && typeof uw.openSession === "function") {
+      uw.openSession(target);
       return true;
     }
     if (CTX && CTX.sessions && typeof CTX.sessions.open === "function") {
